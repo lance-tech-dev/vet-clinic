@@ -19,7 +19,7 @@ export function Navbar({ authState }: NavbarProps) {
   const pathname = usePathname();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Hide the public navbar on all /admin routes
+  // Hide public navbar on admin pages
   if (pathname.startsWith(ROUTES.ADMIN)) {
     return null;
   }
@@ -29,21 +29,21 @@ export function Navbar({ authState }: NavbarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 transition-colors">
+      <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Left: Logo / Brand */}
+          <div className="flex items-center justify-between h-16">
+            {/* Left: Brand Logo */}
             <Logo />
 
-            {/* Right: Desktop Navigation Links (>= 1024px) */}
+            {/* Center: Floating Navigation Pills */}
             <DesktopNav items={NAV_ITEMS} />
 
-            {/* Right: Desktop Auth Controls (>= 1024px) */}
-            <div className="hidden lg:flex items-center ml-4">
+            {/* Right: Actions & User Menu */}
+            <div className="hidden lg:flex items-center">
               <AuthNav authState={authState} />
             </div>
 
-            {/* Right: Mobile/Tablet Hamburger Toggle (< 1024px) */}
+            {/* Mobile Navigation Trigger */}
             <HamburgerButton
               isOpen={isDrawerOpen}
               onClick={toggleDrawer}
@@ -52,7 +52,7 @@ export function Navbar({ authState }: NavbarProps) {
         </div>
       </header>
 
-      {/* Off-Canvas Right-Side Navigation Drawer */}
+      {/* Mobile Drawer */}
       <MobileDrawer
         isOpen={isDrawerOpen}
         onClose={closeDrawer}

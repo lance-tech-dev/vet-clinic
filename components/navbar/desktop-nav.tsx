@@ -12,7 +12,10 @@ export function DesktopNav({ items }: DesktopNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="hidden lg:flex items-center gap-1 xl:gap-2" aria-label="Main Navigation">
+    <nav
+      className="hidden lg:flex items-center gap-1 bg-slate-100/80 p-1 rounded-full border border-slate-200/60 shadow-inner/5"
+      aria-label="Main Navigation"
+    >
       {items.map((item) => {
         const isActive = pathname === item.href;
 
@@ -20,10 +23,10 @@ export function DesktopNav({ items }: DesktopNavProps) {
           <Link
             key={item.href}
             href={item.href}
-            className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900 ${
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900 ${
               isActive
-                ? "text-navy-900 font-semibold bg-navy-50"
-                : "text-slate-600 hover:text-navy-900 hover:bg-navy-50/60"
+                ? "bg-white text-navy-900 font-semibold shadow-xs"
+                : "text-slate-600 hover:text-navy-900 hover:bg-white/50"
             }`}
           >
             {item.label}

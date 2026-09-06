@@ -21,6 +21,11 @@ export const MEDIA_CONFIG = {
 
 export const ROUTES = {
   HOME: "/",
+  ABOUT: "/about",
+  SERVICES: "/services",
+  CONTACT: "/contact",
+  APPOINTMENTS: "/appointments",
+  PROFILE: "/profile",
   LOGIN: "/login",
   REGISTER: "/register",
   ADMIN: "/admin",
