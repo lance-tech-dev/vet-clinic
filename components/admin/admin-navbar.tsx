@@ -11,7 +11,7 @@ export const ADMIN_NAV_ITEMS = [
   { label: "Dashboard", href: "/admin" },
   { label: "Fur Patients", href: "/admin/patients" },
   { label: "Owners", href: "/admin/owners" },
-  { label: "Messages", href: "/admin/messages" },
+  { label: "Inbox", href: "/admin/inbox" },
   { label: "Appointments", href: "/admin/appointments" },
   { label: "Branches", href: "/admin/branches" },
 ] as const;

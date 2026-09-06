@@ -1,17 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { ROUTES } from "@/config/constants";
+import { isAdmin } from "@/lib/auth/roles";
 
 /**
  * Refreshes the Supabase auth session cookie on every request and performs
  * optimistic redirects for the /admin, /login, and /register routes.
- *
- * This is NOT the authoritative authorization check — it only prevents
- * unauthenticated users from reaching /admin before the real, role-based
- * check runs server-side in app/admin/layout.tsx via requireAdmin().
  */
 export async function proxy(request: NextRequest) {
-  const { supabaseResponse, user } = await updateSession(request);
+  const { supabaseResponse, user, supabase } = await updateSession(request);
 
   const { pathname } = request.nextUrl;
   const isAdminRoute = pathname.startsWith(ROUTES.ADMIN);
@@ -25,7 +22,21 @@ export async function proxy(request: NextRequest) {
   }
 
   if ((isLoginRoute || isRegisterRoute) && user) {
-    return NextResponse.redirect(new URL(ROUTES.HOME, request.url));
+    let destination: string = ROUTES.HOME;
+
+    if (supabase) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (isAdmin(profile?.role)) {
+        destination = ROUTES.ADMIN;
+      }
+    }
+
+    return NextResponse.redirect(new URL(destination, request.url));
   }
 
   return supabaseResponse;
