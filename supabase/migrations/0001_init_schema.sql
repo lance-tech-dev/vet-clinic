@@ -1,176 +1,203 @@
 -- ============================================================================
--- Initial schema: user roles, profiles, pets, media assets, and RLS policies.
+-- Production Schema: User Roles, Profiles, Pets, Media Assets, RLS & Triggers
+-- Fully idempotent script for fresh deployment or migration runs.
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
--- Enum: user_role
+-- 1. Enum: user_role
 -- ---------------------------------------------------------------------------
-create type public.user_role as enum ('admin', 'staff', 'user');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+    CREATE TYPE public.user_role AS ENUM ('admin', 'staff', 'user');
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
--- Table: profiles
--- One row per auth.users entry, created automatically via trigger below.
+-- 2. Schema Permissions
 -- ---------------------------------------------------------------------------
-create table public.profiles (
-  id uuid primary key references auth.users (id) on delete cascade,
-  email text not null,
-  full_name text,
-  phone text,
-  role public.user_role not null default 'user',
-  avatar_url text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 3. Table: profiles
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  full_name TEXT,
+  phone TEXT,
+  role public.user_role NOT NULL DEFAULT 'user',
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-alter table public.profiles enable row level security;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- ---------------------------------------------------------------------------
--- Function: is_admin
--- Security-definer helper for RLS evaluations.
+-- 4. Table: pets
 -- ---------------------------------------------------------------------------
-create or replace function public.is_admin(user_id uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from public.profiles
-    where id = user_id and role = 'admin'
+CREATE TABLE IF NOT EXISTS public.pets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id UUID NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.pets ENABLE ROW LEVEL SECURITY;
+
+-- ---------------------------------------------------------------------------
+-- 5. Table: media_assets
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.media_assets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  filename TEXT NOT NULL,
+  storage_key TEXT NOT NULL UNIQUE,
+  url TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes BIGINT NOT NULL,
+  uploaded_by UUID REFERENCES public.profiles (id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.media_assets ENABLE ROW LEVEL SECURITY;
+
+-- ---------------------------------------------------------------------------
+-- 6. Helper Functions
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = user_id AND role = 'admin'
   );
 $$;
 
--- ---------------------------------------------------------------------------
--- RLS: profiles
--- Users may read/update their own profile; admins may read/update all.
--- ---------------------------------------------------------------------------
-create policy "profiles_select_own_or_admin"
-  on public.profiles for select
-  using (auth.uid() = id or public.is_admin(auth.uid()));
-
-create policy "profiles_update_own_or_admin"
-  on public.profiles for update
-  using (auth.uid() = id or public.is_admin(auth.uid()))
-  with check (
-    (auth.uid() = id and role = (select p.role from public.profiles p where p.id = auth.uid()))
-    or public.is_admin(auth.uid())
-  );
-
--- ---------------------------------------------------------------------------
--- Table: pets
--- Stores pet records linked to an owner profile.
--- ---------------------------------------------------------------------------
-create table public.pets (
-  id uuid primary key default gen_random_uuid(),
-  owner_id uuid not null references public.profiles (id) on delete cascade,
-  name text not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-alter table public.pets enable row level security;
-
--- ---------------------------------------------------------------------------
--- RLS: pets
--- Owners can read/update/delete their own pets; admins can manage all pets.
--- ---------------------------------------------------------------------------
-create policy "pets_select_own_or_admin"
-  on public.pets for select
-  using (auth.uid() = owner_id or public.is_admin(auth.uid()));
-
-create policy "pets_insert_own_or_admin"
-  on public.pets for insert
-  with check (auth.uid() = owner_id or public.is_admin(auth.uid()));
-
-create policy "pets_update_own_or_admin"
-  on public.pets for update
-  using (auth.uid() = owner_id or public.is_admin(auth.uid()));
-
-create policy "pets_delete_own_or_admin"
-  on public.pets for delete
-  using (auth.uid() = owner_id or public.is_admin(auth.uid()));
-
--- ---------------------------------------------------------------------------
--- Trigger: auto-create profile and pet rows when a new user signs up.
--- ---------------------------------------------------------------------------
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  owner_name_val text;
-  phone_val text;
-  pet_name_val text;
-begin
-  owner_name_val := coalesce(new.raw_user_meta_data ->> 'owner_name', new.raw_user_meta_data ->> 'full_name');
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  owner_name_val TEXT;
+  phone_val TEXT;
+  pet_name_val TEXT;
+BEGIN
+  owner_name_val := COALESCE(new.raw_user_meta_data ->> 'owner_name', new.raw_user_meta_data ->> 'full_name');
   phone_val := new.raw_user_meta_data ->> 'phone';
   pet_name_val := new.raw_user_meta_data ->> 'pet_name';
 
-  -- 1. Insert profile record
-  insert into public.profiles (id, email, full_name, phone, avatar_url)
-  values (
+  -- 1. Insert profile record safely
+  INSERT INTO public.profiles (id, email, full_name, phone, avatar_url)
+  VALUES (
     new.id,
     new.email,
     owner_name_val,
     phone_val,
     new.raw_user_meta_data ->> 'avatar_url'
-  );
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone;
 
   -- 2. Insert initial pet if pet_name was provided
-  if pet_name_val is not null and length(trim(pet_name_val)) > 0 then
-    insert into public.pets (owner_id, name)
-    values (new.id, trim(pet_name_val));
-  end if;
+  IF pet_name_val IS NOT NULL AND length(trim(pet_name_val)) > 0 THEN
+    INSERT INTO public.pets (owner_id, name)
+    VALUES (new.id, trim(pet_name_val));
+  END IF;
 
-  return new;
-end;
+  RETURN new;
+END;
 $$;
 
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
+-- ---------------------------------------------------------------------------
+-- 7. Trigger
+-- ---------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ---------------------------------------------------------------------------
--- Table: media_assets
--- Metadata for files stored in Cloudflare R2.
+-- 8. RLS Policies
 -- ---------------------------------------------------------------------------
-create table public.media_assets (
-  id uuid primary key default gen_random_uuid(),
-  filename text not null,
-  storage_key text not null unique,
-  url text not null,
-  mime_type text not null,
-  size_bytes bigint not null,
-  uploaded_by uuid references public.profiles (id) on delete set null,
-  created_at timestamptz not null default now()
-);
 
-alter table public.media_assets enable row level security;
+-- Profiles Policies
+DROP POLICY IF EXISTS "profiles_select_own_or_admin" ON public.profiles;
+CREATE POLICY "profiles_select_own_or_admin"
+  ON public.profiles FOR SELECT
+  USING (auth.uid() = id OR public.is_admin(auth.uid()));
 
--- ---------------------------------------------------------------------------
--- RLS: media_assets
--- ---------------------------------------------------------------------------
-create policy "media_assets_select_all"
-  on public.media_assets for select
-  using (true);
+DROP POLICY IF EXISTS "profiles_update_own_or_admin" ON public.profiles;
+CREATE POLICY "profiles_update_own_or_admin"
+  ON public.profiles FOR UPDATE
+  USING (auth.uid() = id OR public.is_admin(auth.uid()))
+  WITH CHECK (
+    (auth.uid() = id AND role = (SELECT p.role FROM public.profiles p WHERE p.id = auth.uid()))
+    OR public.is_admin(auth.uid())
+  );
 
-create policy "media_assets_insert_staff_or_admin"
-  on public.media_assets for insert
-  with check (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role in ('admin', 'staff')
+-- Pets Policies
+DROP POLICY IF EXISTS "pets_select_own_or_admin" ON public.pets;
+CREATE POLICY "pets_select_own_or_admin"
+  ON public.pets FOR SELECT
+  USING (auth.uid() = owner_id OR public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "pets_insert_own_or_admin" ON public.pets;
+CREATE POLICY "pets_insert_own_or_admin"
+  ON public.pets FOR INSERT
+  WITH CHECK (auth.uid() = owner_id OR public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "pets_update_own_or_admin" ON public.pets;
+CREATE POLICY "pets_update_own_or_admin"
+  ON public.pets FOR UPDATE
+  USING (auth.uid() = owner_id OR public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "pets_delete_own_or_admin" ON public.pets;
+CREATE POLICY "pets_delete_own_or_admin"
+  ON public.pets FOR DELETE
+  USING (auth.uid() = owner_id OR public.is_admin(auth.uid()));
+
+-- Media Assets Policies
+DROP POLICY IF EXISTS "media_assets_select_all" ON public.media_assets;
+CREATE POLICY "media_assets_select_all"
+  ON public.media_assets FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "media_assets_insert_staff_or_admin" ON public.media_assets;
+CREATE POLICY "media_assets_insert_staff_or_admin"
+  ON public.media_assets FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'staff')
     )
   );
 
-create policy "media_assets_delete_staff_or_admin"
-  on public.media_assets for delete
-  using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role in ('admin', 'staff')
+DROP POLICY IF EXISTS "media_assets_delete_staff_or_admin" ON public.media_assets;
+CREATE POLICY "media_assets_delete_staff_or_admin"
+  ON public.media_assets FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'staff')
     )
   );
+
+-- ---------------------------------------------------------------------------
+-- 9. Table & Function Access Grants
+-- ---------------------------------------------------------------------------
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
