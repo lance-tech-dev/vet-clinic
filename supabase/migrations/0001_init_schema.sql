@@ -40,9 +40,19 @@ CREATE TABLE IF NOT EXISTS public.pets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id UUID NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  species TEXT DEFAULT 'Dog',
+  breed TEXT,
+  age TEXT,
+  notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Idempotent column additions in case table already existed
+ALTER TABLE public.pets ADD COLUMN IF NOT EXISTS species TEXT DEFAULT 'Dog';
+ALTER TABLE public.pets ADD COLUMN IF NOT EXISTS breed TEXT;
+ALTER TABLE public.pets ADD COLUMN IF NOT EXISTS age TEXT;
+ALTER TABLE public.pets ADD COLUMN IF NOT EXISTS notes TEXT;
 
 ALTER TABLE public.pets ENABLE ROW LEVEL SECURITY;
 
@@ -63,7 +73,7 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
 ALTER TABLE public.media_assets ENABLE ROW LEVEL SECURITY;
 
 -- ---------------------------------------------------------------------------
--- 6. Helper Functions
+-- 6. Helper Functions & Auth Trigger
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
 RETURNS BOOLEAN
@@ -88,6 +98,8 @@ DECLARE
   owner_name_val TEXT;
   phone_val TEXT;
   pet_name_val TEXT;
+  pet_elem JSONB;
+  pet_str TEXT;
 BEGIN
   owner_name_val := COALESCE(new.raw_user_meta_data ->> 'owner_name', new.raw_user_meta_data ->> 'full_name');
   phone_val := new.raw_user_meta_data ->> 'phone';
@@ -107,8 +119,39 @@ BEGIN
     full_name = EXCLUDED.full_name,
     phone = EXCLUDED.phone;
 
-  -- 2. Insert initial pet if pet_name was provided
-  IF pet_name_val IS NOT NULL AND length(trim(pet_name_val)) > 0 THEN
+  -- 2. Insert pets dynamically from metadata
+  -- Option A: Array of objects or strings passed in 'pets'
+  IF new.raw_user_meta_data -> 'pets' IS NOT NULL AND jsonb_typeof(new.raw_user_meta_data -> 'pets') = 'array' THEN
+    FOR pet_elem IN SELECT * FROM jsonb_array_elements(new.raw_user_meta_data -> 'pets')
+    LOOP
+      IF jsonb_typeof(pet_elem) = 'object' AND length(trim(COALESCE(pet_elem ->> 'name', ''))) > 0 THEN
+        INSERT INTO public.pets (owner_id, name, species, breed, age, notes)
+        VALUES (
+          new.id,
+          trim(pet_elem ->> 'name'),
+          COALESCE(NULLIF(trim(pet_elem ->> 'species'), ''), 'Dog'),
+          pet_elem ->> 'breed',
+          pet_elem ->> 'age',
+          pet_elem ->> 'notes'
+        );
+      ELSIF jsonb_typeof(pet_elem) = 'string' AND length(trim(pet_elem #>> '{}')) > 0 THEN
+        INSERT INTO public.pets (owner_id, name)
+        VALUES (new.id, trim(pet_elem #>> '{}'));
+      END IF;
+    END LOOP;
+
+  -- Option B: Array of pet name strings passed in 'pet_names'
+  ELSIF new.raw_user_meta_data -> 'pet_names' IS NOT NULL AND jsonb_typeof(new.raw_user_meta_data -> 'pet_names') = 'array' THEN
+    FOR pet_str IN SELECT * FROM jsonb_array_elements_text(new.raw_user_meta_data -> 'pet_names')
+    LOOP
+      IF length(trim(pet_str)) > 0 THEN
+        INSERT INTO public.pets (owner_id, name)
+        VALUES (new.id, trim(pet_str));
+      END IF;
+    END LOOP;
+
+  -- Option C: Single legacy 'pet_name' string
+  ELSIF pet_name_val IS NOT NULL AND length(trim(pet_name_val)) > 0 THEN
     INSERT INTO public.pets (owner_id, name)
     VALUES (new.id, trim(pet_name_val));
   END IF;
