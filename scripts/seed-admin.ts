@@ -5,14 +5,6 @@
  * and ensures their profile role is "admin". Run with:
  *
  *   npm run seed:admin
- *
- * Safe to re-run: if the user already exists, it is reused and its profile role
- * is (re)set to "admin" rather than failing.
- *
- * This script runs standalone via `tsx`, outside the Next.js server runtime, so
- * it builds its own Supabase admin client rather than importing
- * lib/supabase/admin.ts (which is guarded by the `server-only` package and
- * throws when loaded outside Next's server bundling).
  */
 import { loadEnvConfig } from "@next/env";
 
@@ -59,9 +51,13 @@ async function main() {
   const email = env.ADMIN_EMAIL!;
   const password = env.ADMIN_INITIAL_PASSWORD!;
 
-  const supabase = createClient<Database>(env.NEXT_PUBLIC_SUPABASE_URL!, env.SUPABASE_SERVICE_ROLE_KEY!, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const supabase = createClient<Database>(
+    env.NEXT_PUBLIC_SUPABASE_URL!,
+    env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+    }
+  );
 
   console.log(`Seeding admin user: ${email}`);
 
@@ -75,18 +71,21 @@ async function main() {
 
   if (createError) {
     const alreadyExists =
-      createError.code === "email_exists" || /already registered|already exists/i.test(createError.message);
+      createError.code === "email_exists" ||
+      /already registered|already exists/i.test(createError.message);
 
     if (!alreadyExists) {
       console.error(`Failed to create admin user: ${createError.message}`);
       process.exit(1);
     }
 
-    console.log("User already exists — reusing the existing account.");
+    console.log("User already exists in Auth — reusing account.");
     const existing = await findUserByEmail(supabase, email);
 
     if (!existing) {
-      console.error("Creation reported the user already exists, but no matching account was found via listUsers().");
+      console.error(
+        "Creation reported the user already exists, but no matching account was found via listUsers()."
+      );
       process.exit(1);
     }
 
@@ -95,33 +94,26 @@ async function main() {
     userId = created.user.id;
   }
 
-  const { data: updated, error: profileError } = await supabase
+  // Include required `email` property in the upsert payload
+  const { error: profileError } = await supabase
     .from("profiles")
-    .update({ role: "admin" })
-    .eq("id", userId)
+    .upsert(
+      {
+        id: userId,
+        email: email,
+        role: "admin",
+        full_name: "System Admin",
+      },
+      { onConflict: "id" }
+    )
     .select("id");
 
   if (profileError) {
-    console.error(`User exists but failed to set the admin role on its profile: ${profileError.message}`);
-    console.error(
-      "Has supabase/migrations/0001_init_schema.sql been applied? The profiles table/trigger must exist first."
-    );
+    console.error(`Failed to create or update admin profile: ${profileError.message}`);
     process.exit(1);
   }
 
-  if (!updated || updated.length === 0) {
-    console.error(
-      "The auth user exists, but no matching row in `profiles` was updated (0 rows affected).\n" +
-        "This happens when the auth user was created before the profiles trigger existed — the\n" +
-        "on_auth_user_created trigger only fires for new signups, not retroactively. Apply\n" +
-        "supabase/migrations/0001_init_schema.sql first, then delete this auth user (via the\n" +
-        "Supabase dashboard or auth.admin.deleteUser) and re-run `npm run seed:admin` so the\n" +
-        "trigger creates the profile row from scratch."
-    );
-    process.exit(1);
-  }
-
-  console.log(`Admin user ready: ${email} (role: admin)`);
+  console.log(`✅ Admin user ready: ${email} (role: admin, id: ${userId})`);
 }
 
 main().catch((err) => {
