@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/session";
 import { AuthenticationError, ForbiddenError } from "@/lib/errors/app-error";
 import { ROUTES } from "@/config/constants";
+import { AdminNavbar } from "@/components/admin/admin-navbar";
+import type { NavAuthState } from "@/lib/auth/types";
 
 /**
  * Server-side authorization boundary for every /admin route.
@@ -12,8 +14,9 @@ import { ROUTES } from "@/config/constants";
  * any admin content.
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  let adminData;
   try {
-    await requireAdmin();
+    adminData = await requireAdmin();
   } catch (error) {
     if (error instanceof AuthenticationError) {
       redirect(ROUTES.LOGIN);
@@ -24,5 +27,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     throw error;
   }
 
-  return <>{children}</>;
+  const navAuthState: NavAuthState = {
+    isAuthenticated: true,
+    displayName: adminData.profile.full_name ?? adminData.user.email ?? "Admin",
+    isAdmin: true,
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <AdminNavbar authState={navAuthState} />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {children}
+      </main>
+    </div>
+  );
 }

@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Logo } from "./logo";
 import { DesktopNav } from "./desktop-nav";
 import { HamburgerButton } from "./hamburger-button";
 import { MobileDrawer } from "./mobile-drawer";
 import { AuthNav } from "./auth-nav";
 import { NAV_ITEMS } from "./nav-data";
+import { ROUTES } from "@/config/constants";
 import type { NavAuthState } from "@/lib/auth/types";
 
 interface NavbarProps {
@@ -14,7 +16,13 @@ interface NavbarProps {
 }
 
 export function Navbar({ authState }: NavbarProps) {
+  const pathname = usePathname();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Hide the public navbar on all /admin routes
+  if (pathname.startsWith(ROUTES.ADMIN)) {
+    return null;
+  }
 
   const toggleDrawer = () => setIsDrawerOpen((prev) => !prev);
   const closeDrawer = () => setIsDrawerOpen(false);
