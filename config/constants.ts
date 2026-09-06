@@ -24,5 +24,5 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   ADMIN: "/admin",
-  UNAUTHORIZED: "/admin/unauthorized",
+  UNAUTHORIZED: "/unauthorized",
 } as const;

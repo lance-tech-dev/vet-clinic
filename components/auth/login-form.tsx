@@ -1,62 +1,72 @@
-"use client";
+'use client';
 
-import { useActionState } from "react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { login, type LoginFormState } from "@/app/login/actions";
-import { ROUTES } from "@/config/constants";
-import { PasswordInput } from "./password-input";
+import { useActionState } from 'react';
+import Link from 'next/link';
+import { loginAction } from '@/app/login/actions';
+import { ROUTES } from '@/config/constants';
+import { PasswordInput } from './password-input';
 
-const initialState: LoginFormState = {};
-
-export function LoginForm() {
-  const [state, formAction, pending] = useActionState(login, initialState);
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") ?? "";
+export default function LoginForm() {
+  const [state, formAction, isPending] = useActionState(loginAction, {});
 
   return (
-    <form action={formAction} className="w-full max-w-sm space-y-4 rounded-lg border border-navy-100 p-6 shadow-sm">
-      <div>
-        <h1 className="text-xl font-semibold text-navy-900">Sign In</h1>
-        <p className="mt-1 text-sm text-slate-600">Welcome back. Please enter your details.</p>
+    <form action={formAction} className="space-y-5 w-full max-w-md p-8 bg-surface rounded-2xl shadow-md border border-border">
+      <div className="space-y-1 text-left">
+        <h2 className="text-2xl font-bold text-navy-900 tracking-tight">Welcome back</h2>
+        <p className="text-sm text-foreground-muted">Enter your credentials to access vet-clinic</p>
       </div>
 
-      <input type="hidden" name="redirectTo" value={redirectTo} />
+      {state?.error && (
+        <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200">
+          {state.error}
+        </div>
+      )}
 
-      <div>
-        <label htmlFor="email" className="block text-sm text-navy-700">
-          Email address
+      <div className="space-y-1.5">
+        <label htmlFor="email" className="block text-sm font-semibold text-navy-900">
+          Email Address
         </label>
         <input
           id="email"
           name="email"
           type="email"
-          required
           autoComplete="email"
-          className="mt-1 w-full rounded border border-navy-200 px-3 py-2 text-navy-900 focus:border-navy-500 focus:outline-none"
+          disabled={isPending}
+          placeholder="doctor@vetclinic.com"
+          className="w-full px-3.5 py-2.5 border border-border rounded-lg bg-surface text-foreground placeholder:text-foreground-subtle focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 transition-all text-sm"
         />
+        {state?.fieldErrors?.email && (
+          <p className="text-xs text-red-500 mt-1">{state.fieldErrors.email[0]}</p>
+        )}
       </div>
 
-      <PasswordInput name="password" label="Password" autoComplete="current-password" />
-
-      {state?.error && (
-        <p role="alert" className="text-sm text-red-600">
-          {state.error}
-        </p>
-      )}
+      <div className="space-y-1.5">
+        <label htmlFor="password" className="block text-sm font-semibold text-navy-900">
+          Password
+        </label>
+        <PasswordInput
+          id="password"
+          name="password"
+          disabled={isPending}
+          error={!!state?.fieldErrors?.password}
+        />
+        {state?.fieldErrors?.password && (
+          <p className="text-xs text-red-500 mt-1">{state.fieldErrors.password[0]}</p>
+        )}
+      </div>
 
       <button
         type="submit"
-        disabled={pending}
-        className="w-full rounded bg-navy-900 px-3 py-2 text-white transition hover:bg-navy-800 disabled:opacity-50"
+        disabled={isPending}
+        className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 text-sm cursor-pointer"
       >
-        {pending ? "Logging in..." : "Log In"}
+        {isPending ? 'Signing in...' : 'Sign In'}
       </button>
 
-      <p className="text-center text-sm text-slate-600">
-        Don&apos;t have an account?{" "}
-        <Link href={ROUTES.REGISTER} className="font-medium text-navy-900 hover:text-gold-600">
-          Register
+      <p className="text-center text-sm text-foreground-muted mt-6">
+        Don&apos;t have an account?{' '}
+        <Link href={ROUTES.REGISTER ?? '/register'} className="text-orange-600 hover:text-orange-700 font-semibold hover:underline transition-colors">
+          Register here
         </Link>
       </p>
     </form>

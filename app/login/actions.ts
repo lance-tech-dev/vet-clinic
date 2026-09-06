@@ -1,39 +1,39 @@
-"use server";
+// app/login/actions.ts
+'use server';
 
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { ROUTES } from "@/config/constants";
-import { logger } from "@/lib/logging/logger";
-import { loginSchema } from "@/lib/auth/validation";
-import { sanitizeRedirectTarget } from "@/lib/utils/safe-redirect";
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { loginSchema } from '@/lib/auth/validation';
 
-export interface LoginFormState {
+export type ActionState = {
   error?: string;
-}
+  fieldErrors?: Record<string, string[]>;
+};
 
-/**
- * Authenticates a user via Supabase Auth. Failure messaging is intentionally
- * generic ("Invalid email or password") regardless of whether the email
- * exists — distinguishing the two would be an account-enumeration leak.
- */
-export async function login(_prevState: LoginFormState, formData: FormData): Promise<LoginFormState> {
-  const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
+export async function loginAction(
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const rawData = {
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+  };
 
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  const validation = loginSchema.safeParse(rawData);
+  if (!validation.success) {
+    return {
+      fieldErrors: validation.error.flatten().fieldErrors,
+    };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { error } = await supabase.auth.signInWithPassword(validation.data);
 
   if (error) {
-    logger.warn("Login attempt failed", { email: parsed.data.email });
-    return { error: "Invalid email or password." };
+    return { error: error.message };
   }
 
-  const redirectTo = sanitizeRedirectTarget(formData.get("redirectTo"), ROUTES.HOME);
-  redirect(redirectTo);
+  revalidatePath('/', 'layout');
+  redirect('/admin');
 }

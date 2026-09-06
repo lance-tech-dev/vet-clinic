@@ -2,60 +2,61 @@
 
 :root {
   /* ==========================================================================
-     PRIMARY BRAND COLOR — NAVY BLUE
+     PRIMARY BRAND COLOR — DEEP NAVY BLUE
      Communicates: Trust, Professionalism, Strength, Stability
+     Exact logo match: "Vet" text and "FURBABIES & FRIENDS"
      ========================================================================== */
-  --navy-50: #f2f5fa;
-  --navy-100: #e2eaf5;
-  --navy-200: #c5d6ec;
-  --navy-300: #98b7de;
-  --navy-400: #6593cc;
-  --navy-500: #4274b8;
-  --navy-600: #2f5a9c;
-  --navy-700: #26487e;
-  --navy-800: #1b355d;
-  --navy-900: #0d1e38; /* Primary Navy Brand */
-  --navy-950: #071120; /* Deep Midnight Navy */
+  --navy-50: #f0f4f9;
+  --navy-100: #dde6f0;
+  --navy-200: #c0d1e2;
+  --navy-300: #98b4d1;
+  --navy-400: #6890bc;
+  --navy-500: #4571a2;
+  --navy-600: #2d5584;
+  --navy-700: #1d3f67;
+  --navy-800: #153353;
+  --navy-900: #0f2b48; /* Primary Navy Brand (#0F2B48) */
+  --navy-950: #081a2e; /* Deep Midnight Navy */
 
   /* ==========================================================================
-     ACCENT COLOR — GOLD / WARM AMBER
-     Communicates: Premium Quality, Energy, Attention, Polish
-     Used for: Highlights, Active States, Key CTAs, Badges, Subtle Accents
+     ACCENT BRAND COLOR — WARM AMBER ORANGE
+     Communicates: Energy, Warmth, Friendliness, Attention
+     Exact logo match: "Clinic" text and Dog illustration
      ========================================================================== */
-  --gold-50: #fdfbf7;
-  --gold-100: #faf4e8;
-  --gold-200: #f4e7cd;
-  --gold-300: #ecd3a5;
-  --gold-400: #e0ba74;
-  --gold-500: #cca04b; /* Core Premium Gold */
-  --gold-600: #b58635; /* Deep Gold for accessible contrast on light surfaces */
-  --gold-700: #936829;
-  --gold-800: #775225;
-  --gold-900: #624322;
-  --gold-950: #38230f;
+  --orange-50: #fff7ed;
+  --orange-100: #ffedd5;
+  --orange-200: #fed7aa;
+  --orange-300: #fdba74;
+  --orange-400: #fb923c;
+  --orange-500: #f27b13; /* Core Brand Orange (#F27B13) */
+  --orange-600: #d96303; /* Deep Orange for hover states & buttons */
+  --orange-700: #b44b02; /* Active/Pressed state */
+  --orange-800: #9a3412;
+  --orange-900: #7c2d12;
+  --orange-950: #431407;
 
   /* ==========================================================================
-     CLEAN NEUTRAL SURFACES & CANVAS — WHITE & SLATE
+     CLEAN NEUTRAL SURFACES & CANVAS — WHITE & ICE TINT
      ========================================================================== */
-  --background: #ffffff;
-  --surface: #ffffff;
-  --surface-muted: #f8fafc;
-  --surface-navy: #0d1e38;
+  --background: #f5f8fc;  /* Ice-tinted app canvas */
+  --surface: #ffffff;     /* Card surface background */
+  --surface-muted: #f0f4f9;
+  --surface-navy: #0f2b48;
 
   /* Text & Foreground Hierarchy */
-  --foreground: #0d1e38;           /* Primary text - deep navy neutral */
-  --foreground-muted: #475569;     /* Secondary/body text */
-  --foreground-subtle: #64748b;    /* Metadata, captions, tertiary */
+  --foreground: #081a2e;           /* Primary text - deep navy neutral */
+  --foreground-muted: #52667a;     /* Secondary/body text */
+  --foreground-subtle: #7a8d9e;    /* Metadata, captions, tertiary */
   --foreground-on-navy: #ffffff;   /* Pure white text on navy backgrounds */
-  --foreground-on-navy-muted: #cbd5e1; /* Muted text on navy */
-  --foreground-accent: #cca04b;    /* Gold text accent */
+  --foreground-on-navy-muted: #dde6f0; /* Muted text on navy */
+  --foreground-accent: #f27b13;    /* Orange text accent */
 
   /* Borders & Dividers */
-  --border: #e2e8f0;
-  --border-subtle: #f1f5f9;
-  --border-strong: #cbd5e1;
-  --border-navy: #1b355d;
-  --border-gold: #cca04b;
+  --border: #e1e8f0;
+  --border-subtle: #f0f4f9;
+  --border-strong: #c0d1e2;
+  --border-navy: #153353;
+  --border-orange: #f27b13;
 
   /* Semantic Feedback Colors */
   --success: #059669;
@@ -72,12 +73,12 @@
   --radius-2xl: 1.5rem;
   --radius-full: 9999px;
 
-  /* Elevation & Shadows */
-  --shadow-xs: 0 1px 2px 0 rgba(13, 30, 56, 0.04);
-  --shadow-sm: 0 1px 3px 0 rgba(13, 30, 56, 0.08), 0 1px 2px -1px rgba(13, 30, 56, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(13, 30, 56, 0.08), 0 2px 4px -2px rgba(13, 30, 56, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(13, 30, 56, 0.08), 0 4px 6px -4px rgba(13, 30, 56, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(13, 30, 56, 0.1), 0 8px 10px -6px rgba(13, 30, 56, 0.06);
+  /* Elevation & Shadows (Calibrated to Navy Tint) */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 43, 72, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(15, 43, 72, 0.08), 0 1px 2px -1px rgba(15, 43, 72, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(15, 43, 72, 0.08), 0 2px 4px -2px rgba(15, 43, 72, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 43, 72, 0.08), 0 4px 6px -4px rgba(15, 43, 72, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 43, 72, 0.1), 0 8px 10px -6px rgba(15, 43, 72, 0.06);
 }
 
 @theme inline {
@@ -97,18 +98,18 @@
   --color-navy-900: var(--navy-900);
   --color-navy-950: var(--navy-950);
 
-  /* Gold Palette Tokens */
-  --color-gold-50: var(--gold-50);
-  --color-gold-100: var(--gold-100);
-  --color-gold-200: var(--gold-200);
-  --color-gold-300: var(--gold-300);
-  --color-gold-400: var(--gold-400);
-  --color-gold-500: var(--gold-500);
-  --color-gold-600: var(--gold-600);
-  --color-gold-700: var(--gold-700);
-  --color-gold-800: var(--gold-800);
-  --color-gold-900: var(--gold-900);
-  --color-gold-950: var(--gold-950);
+  /* Orange Brand Palette Tokens */
+  --color-orange-50: var(--orange-50);
+  --color-orange-100: var(--orange-100);
+  --color-orange-200: var(--orange-200);
+  --color-orange-300: var(--orange-300);
+  --color-orange-400: var(--orange-400);
+  --color-orange-500: var(--orange-500);
+  --color-orange-600: var(--orange-600);
+  --color-orange-700: var(--orange-700);
+  --color-orange-800: var(--orange-800);
+  --color-orange-900: var(--orange-900);
+  --color-orange-950: var(--orange-950);
 
   /* Primary Brand Aliases */
   --color-primary: var(--navy-900);
@@ -118,11 +119,11 @@
   --color-primary-muted: var(--navy-50);
 
   /* Accent Aliases */
-  --color-accent: var(--gold-500);
-  --color-accent-hover: var(--gold-400);
-  --color-accent-dark: var(--gold-600);
-  --color-accent-light: var(--gold-300);
-  --color-accent-muted: var(--gold-50);
+  --color-accent: var(--orange-500);
+  --color-accent-hover: var(--orange-600);
+  --color-accent-dark: var(--orange-700);
+  --color-accent-light: var(--orange-300);
+  --color-accent-muted: var(--orange-50);
 
   /* Canvas and Text */
   --color-background: var(--background);
@@ -146,19 +147,20 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Focus outline standard */
+/* Focus outline standard - Brand Navy with Orange offset ring */
 :focus-visible {
-  outline: 2px solid var(--navy-900);
+  outline: 2px solid var(--orange-500);
   outline-offset: 2px;
 }
 
-/* Selection highlighting */
+/* Selection highlighting - Light Orange highlight with Deep Navy text */
 ::selection {
-  background-color: var(--gold-200);
+  background-color: var(--orange-100);
   color: var(--navy-950);
 }
 
@@ -179,7 +181,7 @@ body {
 
 /* Clean White Section Support */
 .section-white {
-  background-color: var(--background);
+  background-color: var(--surface);
   color: var(--foreground);
 }
 

@@ -50,10 +50,19 @@ async function main() {
   const env = getServerEnv();
   const email = env.ADMIN_EMAIL!;
   const password = env.ADMIN_INITIAL_PASSWORD!;
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY!;
+
+  if (serviceRoleKey === env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error(
+      "❌ SUPABASE_SERVICE_ROLE_KEY is set to your ANON key in .env.local.\n" +
+        "You must use the service_role key from Supabase Dashboard -> Project Settings -> API to bypass RLS."
+    );
+    process.exit(1);
+  }
 
   const supabase = createClient<Database>(
     env.NEXT_PUBLIC_SUPABASE_URL!,
-    env.SUPABASE_SERVICE_ROLE_KEY!,
+    serviceRoleKey,
     {
       auth: { autoRefreshToken: false, persistSession: false },
     }
@@ -65,6 +74,9 @@ async function main() {
     email,
     password,
     email_confirm: true,
+    user_metadata: {
+      owner_name: "System Admin",
+    },
   });
 
   let userId: string;
@@ -94,19 +106,18 @@ async function main() {
     userId = created.user.id;
   }
 
-  // Include required `email` property in the upsert payload
+  // Ensure profile exists and role is elevated to admin
   const { error: profileError } = await supabase
     .from("profiles")
     .upsert(
       {
         id: userId,
         email: email,
-        role: "admin",
         full_name: "System Admin",
+        role: "admin",
       },
       { onConflict: "id" }
-    )
-    .select("id");
+    );
 
   if (profileError) {
     console.error(`Failed to create or update admin profile: ${profileError.message}`);
