@@ -246,7 +246,7 @@ export default function AdminDashboardPage() {
               Client messages submitted through the public contact form.
             </p>
             <Link
-              href="/admin/messages"
+              href="/admin/inbox"
               className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-50 hover:bg-slate-100 text-navy-900 font-semibold text-xs rounded-xl border border-slate-200 transition-colors"
             >
               Go to Inbox →
