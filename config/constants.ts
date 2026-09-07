@@ -23,6 +23,7 @@ export const ROUTES = {
   HOME: "/",
   ABOUT: "/about",
   SERVICES: "/services",
+  BRANCHES: "/branches",
   CONTACT: "/contact",
   APPOINTMENTS: "/appointments",
   PROFILE: "/profile",

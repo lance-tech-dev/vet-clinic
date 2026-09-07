@@ -15,7 +15,12 @@ interface MobileDrawerProps {
   authState: NavAuthState;
 }
 
-export function MobileDrawer({ isOpen, onClose, items, authState }: MobileDrawerProps) {
+export function MobileDrawer({
+  isOpen,
+  onClose,
+  items,
+  authState,
+}: MobileDrawerProps) {
   const pathname = usePathname();
   const drawerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -35,7 +40,6 @@ export function MobileDrawer({ isOpen, onClose, items, authState }: MobileDrawer
     if (isOpen) {
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleKeyDown);
-      // Focus close button on open
       setTimeout(() => {
         closeButtonRef.current?.focus();
       }, 50);
@@ -108,14 +112,14 @@ export function MobileDrawer({ isOpen, onClose, items, authState }: MobileDrawer
         aria-hidden="true"
       />
 
-      {/* Right-Side Off-Canvas Drawer */}
+      {/* Off-Canvas Drawer */}
       <div
         id="mobile-drawer"
         ref={drawerRef}
         role="dialog"
         aria-modal="true"
         aria-label="Navigation Menu"
-        className={`fixed top-0 right-0 bottom-0 w-[85vw] max-w-sm sm:max-w-md h-full bg-white shadow-2xl border-l border-slate-200/80 flex flex-col justify-between transform transition-transform duration-300 ease-out motion-reduce:transition-none z-50 ${
+        className={`fixed top-0 right-0 bottom-0 w-[85vw] max-w-sm h-full bg-white shadow-2xl border-l border-slate-200/80 flex flex-col justify-between transform transition-transform duration-300 ease-out motion-reduce:transition-none z-50 ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -126,16 +130,16 @@ export function MobileDrawer({ isOpen, onClose, items, authState }: MobileDrawer
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 rounded-lg text-navy-900 hover:bg-navy-50 active:bg-navy-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900 transition-colors"
+            className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 rounded-xl text-navy-900 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900 transition-colors"
             aria-label="Close navigation menu"
           >
             <svg
-              width="22"
-              height="22"
+              width="20"
+              height="20"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
@@ -146,21 +150,24 @@ export function MobileDrawer({ isOpen, onClose, items, authState }: MobileDrawer
           </button>
         </div>
 
-        {/* Drawer Links */}
+        {/* Drawer Nav Links */}
         <nav className="flex-1 overflow-y-auto px-6 py-6" aria-label="Mobile Navigation">
           <ul className="flex flex-col space-y-2">
             {items.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href);
 
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     onClick={onClose}
-                    className={`flex items-center justify-between min-h-[48px] px-4 py-3 text-base font-medium rounded-xl transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900 ${
+                    className={`flex items-center justify-between min-h-[48px] px-4 py-3 text-sm font-bold rounded-xl transition-colors ${
                       isActive
-                        ? "text-navy-900 font-semibold bg-navy-50"
-                        : "text-slate-700 hover:text-navy-900 hover:bg-navy-50/60"
+                        ? "text-white bg-navy-900 shadow-xs"
+                        : "text-slate-700 hover:text-navy-900 hover:bg-slate-100"
                     }`}
                   >
                     <span>{item.label}</span>
@@ -173,7 +180,7 @@ export function MobileDrawer({ isOpen, onClose, items, authState }: MobileDrawer
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="text-slate-400"
+                      className={isActive ? "text-orange-400" : "text-slate-400"}
                       aria-hidden="true"
                     >
                       <polyline points="9 18 15 12 9 6" />
@@ -185,8 +192,8 @@ export function MobileDrawer({ isOpen, onClose, items, authState }: MobileDrawer
           </ul>
         </nav>
 
-        {/* Auth Section */}
-        <div className="border-t border-slate-100 px-6 py-6">
+        {/* Action Controls & Profile/Auth Section */}
+        <div className="border-t border-slate-100 px-6 py-6 bg-slate-50/50">
           <AuthNav authState={authState} variant="mobile" onNavigate={onClose} />
         </div>
       </div>

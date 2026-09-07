@@ -31,7 +31,7 @@ export function Navbar({ authState }: NavbarProps) {
     <>
       <header
         role="banner"
-        className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 transition-colors"
+        className="sticky top-0 z-40 w-full bg-white/85 backdrop-blur-md border-b border-slate-200/80 transition-colors"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
@@ -41,21 +41,18 @@ export function Navbar({ authState }: NavbarProps) {
             {/* Center: Floating Navigation Pills */}
             <DesktopNav items={NAV_ITEMS} />
 
-            {/* Right: Actions & User Menu */}
+            {/* Right: Action Buttons & Auth Controls */}
             <div className="hidden lg:flex items-center">
               <AuthNav authState={authState} />
             </div>
 
-            {/* Mobile Navigation Trigger */}
-            <HamburgerButton
-              isOpen={isDrawerOpen}
-              onClick={toggleDrawer}
-            />
+            {/* Mobile Navigation Hamburger Trigger */}
+            <HamburgerButton isOpen={isDrawerOpen} onClick={toggleDrawer} />
           </div>
         </div>
       </header>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Off-Canvas Navigation Drawer */}
       <MobileDrawer
         isOpen={isDrawerOpen}
         onClose={closeDrawer}

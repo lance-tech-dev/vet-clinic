@@ -3,32 +3,46 @@ import Image from "next/image";
 import { ROUTES } from "@/config/constants";
 import { createClient } from "@/lib/supabase/server";
 
+// Force Next.js to re-query Supabase on every request so admin branch updates sync instantly
+export const dynamic = "force-dynamic";
+
+interface Branch {
+  id: string;
+  name: string;
+  city: string;
+  address: string;
+  phone: string;
+  operating_hours: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 export default async function Home() {
   const supabase = await createClient();
 
   // Fetch active clinic branches from Supabase
-  const { data: activeBranches } = await supabase
+  const { data: rawBranches } = await supabase
     .from("branches")
     .select("*")
     .eq("is_active", true)
     .order("created_at", { ascending: true });
 
-  const branches = activeBranches || [];
+  const branches = (rawBranches as Branch[]) || [];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       {/* 1. Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-orange-50/80 via-white to-slate-50 pt-12 pb-20 lg:pt-20 lg:pb-28">
+      <section className="relative overflow-hidden bg-gradient-to-b from-orange-50/70 via-white to-slate-50 pt-12 pb-20 lg:pt-20 lg:pb-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Content Column */}
+            {/* Left Content */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100/80 text-orange-800 text-xs font-semibold border border-orange-200 shadow-xs">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100/80 text-orange-800 text-xs font-bold border border-orange-200 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                Trusted Veterinary Care in Laguna
+                Trusted Veterinary Healthcare in Laguna
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-navy-900 tracking-tight leading-[1.15]">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-navy-900 tracking-tight leading-[1.12]">
                 Exceptional Medical Care for Your Beloved <span className="text-orange-500">Fur Babies</span>
               </h1>
 
@@ -74,7 +88,7 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Right Card / Visual Banner */}
+            {/* Right Card Feature */}
             <div className="lg:col-span-5">
               <div className="relative mx-auto max-w-md lg:max-w-none bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xl space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -105,7 +119,7 @@ export default async function Home() {
                     <span className="text-2xl">💊</span>
                     <div>
                       <h3 className="text-sm font-bold text-navy-900">In-House Pharmacy</h3>
-                      <p className="text-xs text-slate-600 mt-0.5">Prescription medications, vitamins, supplements, and prescription diet food.</p>
+                      <p className="text-xs text-slate-600 mt-0.5">Prescription medications, vitamins, supplements, and prescription food.</p>
                     </div>
                   </div>
                 </div>
@@ -148,53 +162,70 @@ export default async function Home() {
             {SERVICES.map((service) => (
               <div
                 key={service.title}
-                className="bg-slate-50/80 p-8 rounded-2xl border border-slate-200/80 hover:bg-white hover:shadow-lg transition-all duration-300 group"
+                className="bg-slate-50/80 p-8 rounded-3xl border border-slate-200/80 hover:bg-white hover:shadow-xl transition-all duration-300 group"
               >
-                <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-2xl mb-6 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-2xl mb-6 group-hover:bg-orange-500 group-hover:text-white transition-colors">
                   {service.icon}
                 </div>
                 <h3 className="text-xl font-bold text-navy-900 mb-2">{service.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{service.description}</p>
+                <p className="text-sm text-slate-600 leading-relaxed font-normal">{service.description}</p>
               </div>
             ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <Link
+              href={ROUTES.SERVICES}
+              className="inline-flex items-center gap-2 font-bold text-sm text-orange-600 hover:text-orange-700 hover:underline"
+            >
+              View Full Services Directory →
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* 3. Branch Locations (Dynamic from Supabase) */}
-      <section id="about" className="py-20 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+      {/* 3. Dynamic Clinic Branches (Fetches from Supabase) */}
+      <section id="branches" className="py-20 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center max-w-3xl mx-auto space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-              Clinic Branches
+              Clinic Locations
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-navy-900 tracking-tight">
               Conveniently Located Across Laguna
             </h2>
             <p className="text-slate-600 text-sm sm:text-base">
-              Visit any of our fully equipped clinic branches for top-quality care.
+              Visit any of our active, fully equipped clinic locations for top-quality veterinary care.
             </p>
           </div>
 
           {branches.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-slate-200/80 text-slate-500 text-sm max-w-xl mx-auto">
-              No active clinic locations listed at the moment. Please contact us directly for inquiries.
+            <div className="text-center py-12 bg-white rounded-3xl border border-slate-200/80 text-slate-500 text-sm max-w-xl mx-auto space-y-2">
+              <p className="font-bold text-navy-900">No active branches currently listed.</p>
+              <p>Please contact our team directly for operating hours and appointment slots.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {branches.map((branch) => (
-                <div key={branch.id} className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                      Open Daily
-                    </span>
-                    <span className="text-xs text-slate-400 font-medium">{branch.operating_hours}</span>
+                <div
+                  key={branch.id}
+                  className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-lg transition-all duration-200 flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80">
+                        Open Daily
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">{branch.operating_hours}</span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-bold text-navy-900">{branch.name}</h3>
+                      <p className="text-xs text-slate-500 mt-1">{branch.address}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-navy-900">{branch.name}</h3>
-                    <p className="text-xs text-slate-500 mt-1">{branch.address}</p>
-                  </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700">📞 {branch.phone}</span>
                     <Link href={ROUTES.APPOINTMENTS} className="font-bold text-orange-600 hover:underline">
                       Book Here →
@@ -204,16 +235,25 @@ export default async function Home() {
               ))}
             </div>
           )}
+
+          <div className="text-center">
+            <Link
+              href={ROUTES.BRANCHES}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs shadow-xs transition-colors"
+            >
+              See All Branch Details & Maps
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* 4. Quick Contact / Inquiry Section */}
+      {/* 4. Contact / Inquiry Section */}
       <section id="contact" className="py-20 bg-white border-t border-slate-200/80">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-gradient-to-br from-navy-900 to-slate-900 text-white rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden">
             <div className="relative z-10 space-y-6">
               <div className="text-center space-y-2">
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Have Questions or Need an Appointment?</h2>
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Have Questions or Need Assistance?</h2>
                 <p className="text-slate-300 text-sm">Send us a message and our veterinary team will get back to you promptly.</p>
               </div>
 
