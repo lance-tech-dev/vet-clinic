@@ -1,6 +1,59 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
-export default function AdminDashboardPage() {
+interface RecentPet {
+  id: string;
+  name: string;
+  species: string;
+  breed: string | null;
+  created_at: string;
+  owner_id: string;
+  profiles: {
+    full_name: string | null;
+    email: string;
+    phone: string | null;
+  } | null;
+}
+
+export default async function AdminDashboardPage() {
+  const supabase = await createClient();
+
+  // 1. Fetch real counts and stats from Supabase
+  const [{ count: petsCount }, { count: ownersCount }, { data: recentPetsData }] = await Promise.all([
+    supabase.from("pets").select("*", { count: "exact", head: true }),
+    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "user"),
+    supabase
+      .from("pets")
+      .select(`
+        id,
+        name,
+        species,
+        breed,
+        created_at,
+        owner_id,
+        profiles (
+          full_name,
+          email,
+          phone
+        )
+      `)
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  const recentPets = (recentPetsData as unknown as RecentPet[]) || [];
+  const totalPatients = petsCount ?? 0;
+  const totalOwners = ownersCount ?? 0;
+
+  const getSpeciesIcon = (species: string) => {
+    const s = species.toLowerCase();
+    if (s.includes("dog")) return "🐕";
+    if (s.includes("cat")) return "🐈";
+    if (s.includes("bird")) return "🦜";
+    if (s.includes("rabbit")) return "🐇";
+    return "🐾";
+  };
+
   return (
     <div className="space-y-8">
       {/* 1. Header / Welcome Banner */}
@@ -16,7 +69,7 @@ export default function AdminDashboardPage() {
             Clinic Overview
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Real-time daily operations, fur patient statistics, and appointment management.
+            Real-time daily operations, fur patient statistics, and client management.
           </p>
         </div>
 
@@ -39,7 +92,7 @@ export default function AdminDashboardPage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            Add Fur Patient
+            View Patients
           </Link>
         </div>
       </div>
@@ -60,11 +113,8 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="mt-4">
-            <div className="text-3xl font-extrabold text-navy-900">12</div>
-            <p className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1">
-              <span>↑ 8%</span>
-              <span className="text-slate-400">vs yesterday</span>
-            </p>
+            <div className="text-3xl font-extrabold text-navy-900">0</div>
+            <p className="text-xs font-medium text-slate-400 mt-1">Scheduled for today</p>
           </div>
         </div>
 
@@ -82,11 +132,8 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="mt-4">
-            <div className="text-3xl font-extrabold text-navy-900">1,284</div>
-            <p className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1">
-              <span>↑ 24 new</span>
-              <span className="text-slate-400">this month</span>
-            </p>
+            <div className="text-3xl font-extrabold text-navy-900">{totalPatients}</div>
+            <p className="text-xs font-medium text-emerald-600 mt-1">Registered in database</p>
           </div>
         </div>
 
@@ -104,7 +151,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="mt-4">
-            <div className="text-3xl font-extrabold text-navy-900">892</div>
+            <div className="text-3xl font-extrabold text-navy-900">{totalOwners}</div>
             <p className="text-xs font-medium text-slate-400 mt-1">Active client profiles</p>
           </div>
         </div>
@@ -129,93 +176,67 @@ export default function AdminDashboardPage() {
 
       {/* 3. Main Split Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Today's Appointments Feed (2 Cols Wide) */}
+        {/* Left Column: Recent Registered Patients */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-navy-900">Today&apos;s Appointments</h2>
-              <p className="text-xs text-slate-500">Scheduled visits for today</p>
+              <h2 className="text-base font-bold text-navy-900">Recently Registered Patients</h2>
+              <p className="text-xs text-slate-500">Latest fur babies registered by owners</p>
             </div>
             <Link
-              href="/admin/appointments"
+              href="/admin/patients"
               className="text-xs font-semibold text-orange-600 hover:text-orange-700 hover:underline"
             >
-              View All →
+              View All Patients →
             </Link>
           </div>
 
-          <div className="divide-y divide-slate-100">
-            {/* Sample Appointment Row 1 */}
-            <div className="p-5 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-700 font-bold flex items-center justify-center text-sm">
-                  🐕
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-navy-900">Buddy</h3>
-                  <p className="text-xs text-slate-500">Golden Retriever • Owner: Juan Dela Cruz</p>
-                  <span className="inline-block mt-1 text-xs text-slate-600 font-medium bg-slate-100 px-2 py-0.5 rounded-md">
-                    Vaccination & Annual Checkup
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-sm font-bold text-navy-900 block">09:30 AM</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 mt-1">
-                  Confirmed
-                </span>
-              </div>
+          {recentPets.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-xs">
+              No registered patients found in the database.
             </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {recentPets.map((pet) => {
+                const owner = pet.profiles;
+                const ownerName = owner?.full_name || owner?.email || "Unknown Owner";
+                const date = new Date(pet.created_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                });
 
-            {/* Sample Appointment Row 2 */}
-            <div className="p-5 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
-                  🐈
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-navy-900">Mimi</h3>
-                  <p className="text-xs text-slate-500">Siamese Cat • Owner: Maria Santos</p>
-                  <span className="inline-block mt-1 text-xs text-slate-600 font-medium bg-slate-100 px-2 py-0.5 rounded-md">
-                    Dental Cleaning
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-sm font-bold text-navy-900 block">11:00 AM</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 mt-1">
-                  Completed
-                </span>
-              </div>
+                return (
+                  <div
+                    key={pet.id}
+                    className="p-5 flex items-center justify-between hover:bg-slate-50/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-700 font-bold flex items-center justify-center text-sm">
+                        {getSpeciesIcon(pet.species)}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-navy-900">{pet.name}</h3>
+                        <p className="text-xs text-slate-500">
+                          {pet.breed || pet.species} • Owner: {ownerName}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold text-slate-500 block">{date}</span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 mt-1">
+                        Active Profile
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-
-            {/* Sample Appointment Row 3 */}
-            <div className="p-5 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-sm">
-                  🐶
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-navy-900">Rocky</h3>
-                  <p className="text-xs text-slate-500">Shih Tzu • Owner: Alex Reyes</p>
-                  <span className="inline-block mt-1 text-xs text-slate-600 font-medium bg-slate-100 px-2 py-0.5 rounded-md">
-                    Grooming & Anti-flea Treatment
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-sm font-bold text-navy-900 block">02:15 PM</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 mt-1">
-                  In Progress
-                </span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Right Column: Quick Status & Messages Sidebar (1 Col Wide) */}
+        {/* Right Column: Branch Status & Quick Actions */}
         <div className="space-y-6">
-          {/* Quick Branch Status */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
             <h2 className="text-base font-bold text-navy-900 mb-4">Branch Status</h2>
             <div className="space-y-3">
@@ -234,22 +255,16 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Messages Alert Box */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-navy-900">Recent Inquiries</h2>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
-                2 New
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mb-4">
-              Client messages submitted through the public contact form.
+          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+            <h2 className="text-base font-bold text-navy-900">Client Directory</h2>
+            <p className="text-xs text-slate-500">
+              Browse registered client accounts, contact details, and pet associations.
             </p>
             <Link
-              href="/admin/inbox"
+              href="/admin/owners"
               className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-50 hover:bg-slate-100 text-navy-900 font-semibold text-xs rounded-xl border border-slate-200 transition-colors"
             >
-              Go to Inbox →
+              Open Owner Directory →
             </Link>
           </div>
         </div>

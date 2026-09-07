@@ -24,22 +24,24 @@ export function AdminNavbar({ authState }: AdminNavbarProps) {
   const pathname = usePathname();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const toggleDrawer = () => setIsDrawerOpen((prev) => !prev);
-  const closeDrawer = () => setIsDrawerOpen(false);
+  const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
   // Close drawer on ESC key
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") closeDrawer();
     },
-    []
+    [closeDrawer]
   );
 
   useEffect(() => {
     if (isDrawerOpen) {
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleKeyDown);
+      setTimeout(() => closeButtonRef.current?.focus(), 50);
     } else {
       document.body.style.overflow = "";
     }
@@ -56,11 +58,14 @@ export function AdminNavbar({ authState }: AdminNavbarProps) {
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [isDrawerOpen]);
+  }, [isDrawerOpen, closeDrawer]);
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+      <header
+        role="banner"
+        className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Top-Left: Logo */}
@@ -101,7 +106,7 @@ export function AdminNavbar({ authState }: AdminNavbarProps) {
                 <form action={logout}>
                   <button
                     type="submit"
-                    className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-navy-900 transition-colors cursor-pointer"
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-navy-900 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900"
                   >
                     Logout
                   </button>
@@ -116,7 +121,7 @@ export function AdminNavbar({ authState }: AdminNavbarProps) {
               className="lg:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 rounded-lg text-navy-900 hover:bg-navy-50 active:bg-navy-100 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900"
               aria-controls="admin-mobile-drawer"
               aria-expanded={isDrawerOpen}
-              aria-label={isDrawerOpen ? "Close menu" : "Open menu"}
+              aria-label={isDrawerOpen ? "Close navigation menu" : "Open navigation menu"}
             >
               <div className="w-5 h-4 relative flex flex-col justify-between" aria-hidden="true">
                 <span
@@ -171,12 +176,13 @@ export function AdminNavbar({ authState }: AdminNavbarProps) {
           <div className="flex items-center justify-between px-6 h-20 border-b border-slate-100">
             <Logo onClick={closeDrawer} />
             <button
+              ref={closeButtonRef}
               type="button"
               onClick={closeDrawer}
-              className="p-2.5 rounded-lg text-navy-900 hover:bg-navy-50 transition-colors"
-              aria-label="Close menu"
+              className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 rounded-lg text-navy-900 hover:bg-navy-50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900"
+              aria-label="Close navigation menu"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -197,14 +203,14 @@ export function AdminNavbar({ authState }: AdminNavbarProps) {
                     <Link
                       href={item.href}
                       onClick={closeDrawer}
-                      className={`flex items-center justify-between min-h-[48px] px-4 py-3 text-base font-medium rounded-xl transition-colors ${
+                      className={`flex items-center justify-between min-h-[48px] px-4 py-3 text-base font-medium rounded-xl transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900 ${
                         isActive
                           ? "text-orange-600 font-semibold bg-orange-50"
                           : "text-slate-700 hover:text-navy-900 hover:bg-slate-50"
                       }`}
                     >
                       <span>{item.label}</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
                     </Link>
@@ -228,7 +234,7 @@ export function AdminNavbar({ authState }: AdminNavbarProps) {
               <button
                 type="submit"
                 onClick={closeDrawer}
-                className="w-full flex items-center justify-center min-h-[48px] rounded-xl bg-slate-100 text-slate-800 font-medium hover:bg-slate-200 transition-colors"
+                className="w-full flex items-center justify-center min-h-[48px] rounded-xl bg-slate-100 text-slate-800 font-medium hover:bg-slate-200 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900"
               >
                 Logout
               </button>

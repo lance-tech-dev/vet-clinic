@@ -16,6 +16,7 @@ export interface Database {
           id: string;
           email: string;
           full_name: string | null;
+          phone: string | null;
           role: UserRole;
           avatar_url: string | null;
           created_at: string;
@@ -25,6 +26,7 @@ export interface Database {
           id: string;
           email: string;
           full_name?: string | null;
+          phone?: string | null;
           role?: UserRole;
           avatar_url?: string | null;
           created_at?: string;
@@ -34,6 +36,7 @@ export interface Database {
           id?: string;
           email?: string;
           full_name?: string | null;
+          phone?: string | null;
           role?: UserRole;
           avatar_url?: string | null;
           created_at?: string;
@@ -45,6 +48,50 @@ export interface Database {
             columns: ["id"];
             isOneToOne: true;
             referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      pets: {
+        Row: {
+          id: string;
+          owner_id: string;
+          name: string;
+          species: string;
+          breed: string | null;
+          age: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          name: string;
+          species?: string;
+          breed?: string | null;
+          age?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          name?: string;
+          species?: string;
+          breed?: string | null;
+          age?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pets_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           }
         ];

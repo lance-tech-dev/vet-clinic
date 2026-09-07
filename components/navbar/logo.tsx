@@ -11,12 +11,12 @@ export function Logo({ onClick, className = "" }: LogoProps) {
     <Link
       href="/"
       onClick={onClick}
-      className={`inline-flex items-center group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900 rounded-lg py-1 ${className}`}
+      className={`inline-flex items-center group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900 rounded-lg py-1 transition-opacity hover:opacity-90 ${className}`}
       aria-label="VetClinic Furbabies & Friends - Return to homepage"
     >
       <Image
         src="/vetclinic-logo.png"
-        alt="VetClinic Furbabies & Friends"
+        alt="VetClinic Furbabies & Friends Logo"
         width={1956}
         height={804}
         priority

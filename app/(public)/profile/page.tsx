@@ -25,14 +25,14 @@ export default async function ProfilePage() {
   }
 
   // Fetch user profile from Supabase 'profiles' table
-  const { data: profile } = await (supabase as any)
+  const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
 
   // Fetch registered pets for this owner from the 'pets' table
-  const { data: pets } = await (supabase as any)
+  const { data: pets } = await supabase
     .from("pets")
     .select("*")
     .eq("owner_id", user.id)
@@ -48,7 +48,7 @@ export default async function ProfilePage() {
         role: profile?.role ?? "user",
         createdAt: user.created_at,
       }}
-      pets={(pets as unknown as PetData[]) || []}
+      pets={(pets as PetData[]) || []}
     />
   );
 }

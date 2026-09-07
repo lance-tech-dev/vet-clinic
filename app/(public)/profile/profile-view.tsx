@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState, useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ROUTES } from "@/config/constants";
 import { updateProfile, addPet, type ProfileFormState } from "./actions";
@@ -29,8 +29,21 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
   const [activeTab, setActiveTab] = useState<"account" | "pets" | "appointments">("account");
   const [isAddingPet, setIsAddingPet] = useState(false);
 
+  const petFormRef = useRef<HTMLFormElement>(null);
+
   const [profileState, profileAction, isProfilePending] = useActionState(updateProfile, initialState);
   const [petState, petAction, isPetPending] = useActionState(addPet, initialState);
+
+  // Auto-reset form inputs and collapse accordion on successful pet creation
+  useEffect(() => {
+    if (petState?.success) {
+      petFormRef.current?.reset();
+      const timer = setTimeout(() => {
+        setIsAddingPet(false);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [petState?.success]);
 
   const initialLetter = user.fullName
     ? user.fullName.charAt(0).toUpperCase()
@@ -54,7 +67,7 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
     <main className="min-h-screen bg-slate-50 py-10 sm:py-14">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
-        {/* Modern Header Banner */}
+        {/* Header Banner */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-navy-900 to-slate-800 text-white font-extrabold text-2xl flex items-center justify-center uppercase shadow-md shrink-0 border border-slate-700">
             {initialLetter}
@@ -83,9 +96,17 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
           </Link>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 bg-slate-200/60 p-1.5 rounded-2xl w-fit">
+        {/* Accessible Navigation Tabs */}
+        <div 
+          role="tablist" 
+          aria-label="Profile navigation"
+          className="flex items-center gap-1.5 bg-slate-200/60 p-1.5 rounded-2xl w-fit"
+        >
           <button
+            role="tab"
+            id="tab-account"
+            aria-selected={activeTab === "account"}
+            aria-controls="panel-account"
             onClick={() => setActiveTab("account")}
             className={`px-5 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
               activeTab === "account"
@@ -96,6 +117,10 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
             Account Details
           </button>
           <button
+            role="tab"
+            id="tab-pets"
+            aria-selected={activeTab === "pets"}
+            aria-controls="panel-pets"
             onClick={() => setActiveTab("pets")}
             className={`px-5 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
               activeTab === "pets"
@@ -106,6 +131,10 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
             My Pets ({pets.length})
           </button>
           <button
+            role="tab"
+            id="tab-appointments"
+            aria-selected={activeTab === "appointments"}
+            aria-controls="panel-appointments"
             onClick={() => setActiveTab("appointments")}
             className={`px-5 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
               activeTab === "appointments"
@@ -117,32 +146,38 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
           </button>
         </div>
 
-        {/* Tab 1: Account Details Form */}
+        {/* Tab Panel 1: Account Details */}
         {activeTab === "account" && (
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+          <div
+            role="tabpanel"
+            id="panel-account"
+            aria-labelledby="tab-account"
+            className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6"
+          >
             <div>
               <h2 className="text-lg font-bold text-navy-900">Personal Information</h2>
               <p className="text-xs text-slate-500">Update your account profile details below.</p>
             </div>
 
             {profileState?.success && (
-              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+              <div role="status" className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
                 ✓ Profile successfully updated!
               </div>
             )}
 
             {profileState?.error && (
-              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
+              <div role="alert" className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
                 ⚠️ {profileState.error}
               </div>
             )}
 
             <form action={profileAction} className="space-y-5 max-w-xl">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label htmlFor="account-email" className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Email Address
                 </label>
                 <input
+                  id="account-email"
                   type="email"
                   disabled
                   value={user.email}
@@ -151,10 +186,11 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label htmlFor="account-fullname" className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Full Name
                 </label>
                 <input
+                  id="account-fullname"
                   type="text"
                   name="fullName"
                   defaultValue={user.fullName || ""}
@@ -165,10 +201,11 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label htmlFor="account-phone" className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Phone / Mobile Number
                 </label>
                 <input
+                  id="account-phone"
                   type="tel"
                   name="phone"
                   defaultValue={user.phone || ""}
@@ -190,15 +227,23 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
           </div>
         )}
 
-        {/* Tab 2: Registered Pets */}
+        {/* Tab Panel 2: Registered Pets */}
         {activeTab === "pets" && (
-          <div className="space-y-6">
+          <div
+            role="tabpanel"
+            id="panel-pets"
+            aria-labelledby="tab-pets"
+            className="space-y-6"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-navy-900">Your Registered Pets</h2>
                 <p className="text-xs text-slate-500">Manage your fur babies&apos; medical profiles.</p>
               </div>
               <button
+                type="button"
+                aria-expanded={isAddingPet}
+                aria-controls="add-pet-accordion"
                 onClick={() => setIsAddingPet(!isAddingPet)}
                 className="px-4 py-2 rounded-full bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
               >
@@ -208,28 +253,26 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
 
             {/* Add Pet Form Accordion */}
             {isAddingPet && (
-              <div className="bg-white p-6 rounded-3xl border border-orange-200/80 shadow-md space-y-4">
+              <div 
+                id="add-pet-accordion"
+                className="bg-white p-6 rounded-3xl border border-orange-200/80 shadow-md space-y-4"
+              >
                 <h3 className="text-sm font-bold text-navy-900">Register a New Patient</h3>
 
-                {petState?.success && (
-                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
-                    ✓ Pet registered successfully!
-                  </div>
-                )}
-
                 {petState?.error && (
-                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
+                  <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
                     ⚠️ {petState.error}
                   </div>
                 )}
 
-                <form action={petAction} className="space-y-4">
+                <form ref={petFormRef} action={petAction} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label htmlFor="pet-name" className="block text-xs font-semibold text-slate-700 mb-1">
                         Pet Name *
                       </label>
                       <input
+                        id="pet-name"
                         type="text"
                         name="name"
                         required
@@ -238,10 +281,11 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label htmlFor="pet-species" className="block text-xs font-semibold text-slate-700 mb-1">
                         Species *
                       </label>
                       <select
+                        id="pet-species"
                         name="species"
                         required
                         className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -257,10 +301,11 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label htmlFor="pet-breed" className="block text-xs font-semibold text-slate-700 mb-1">
                         Breed
                       </label>
                       <input
+                        id="pet-breed"
                         type="text"
                         name="breed"
                         placeholder="e.g. Golden Retriever"
@@ -268,10 +313,11 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label htmlFor="pet-age" className="block text-xs font-semibold text-slate-700 mb-1">
                         Age / Birthday
                       </label>
                       <input
+                        id="pet-age"
                         type="text"
                         name="age"
                         placeholder="e.g. 2 years old"
@@ -281,10 +327,11 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label htmlFor="pet-notes" className="block text-xs font-semibold text-slate-700 mb-1">
                       Medical Notes / Allergies
                     </label>
                     <textarea
+                      id="pet-notes"
                       name="notes"
                       rows={2}
                       placeholder="e.g. Allergic to chicken, sensitive stomach..."
@@ -352,9 +399,14 @@ export function ProfileView({ user, pets }: ProfileViewProps) {
           </div>
         )}
 
-        {/* Tab 3: Appointments */}
+        {/* Tab Panel 3: Appointments */}
         {activeTab === "appointments" && (
-          <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xs text-center space-y-4">
+          <div
+            role="tabpanel"
+            id="panel-appointments"
+            aria-labelledby="tab-appointments"
+            className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xs text-center space-y-4"
+          >
             <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl mx-auto">
               📅
             </div>

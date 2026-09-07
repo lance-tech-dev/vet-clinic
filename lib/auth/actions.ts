@@ -2,73 +2,66 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { ROUTES } from "@/config/constants";
+import { registerSchema, petInputSchema, type PetInput } from "./validation";
 
 export interface RegisterFormState {
   error: string | null;
+  fieldErrors?: Record<string, string[]>;
   success: boolean;
-}
-
-export interface PetRegisterInput {
-  name: string;
-  species?: string;
-  breed?: string;
-  age?: string;
-  notes?: string;
 }
 
 export async function registerUser(
   prevState: RegisterFormState,
   formData: FormData
 ): Promise<RegisterFormState> {
-  const supabase = await createClient();
+  const rawData = {
+    fullName: formData.get("fullName") as string,
+    phone: formData.get("phone") as string,
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+    confirmPassword: formData.get("confirmPassword") as string,
+    petsPayload: formData.get("petsPayload") as string,
+  };
 
-  const fullName = formData.get("fullName") as string;
-  const email = formData.get("email") as string;
-  const phone = formData.get("phone") as string;
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
-
-  // 1. Basic validation
-  if (!email || !password || !fullName || !phone) {
-    return { error: "Please fill in all required fields.", success: false };
+  // 1. Validate owner profile form fields
+  const validation = registerSchema.safeParse(rawData);
+  if (!validation.success) {
+    const fieldErrors = validation.error.flatten().fieldErrors;
+    const firstError =
+      Object.values(fieldErrors).flat()[0] || "Please check your input and try again.";
+    return { error: firstError, fieldErrors, success: false };
   }
 
-  if (password !== confirmPassword) {
-    return { error: "Passwords do not match.", success: false };
-  }
+  const { fullName, phone, email, password, petsPayload } = validation.data;
 
-  if (password.length < 6) {
-    return { error: "Password must be at least 6 characters long.", success: false };
-  }
-
-  // 2. Extract dynamic pets array from hidden JSON field or form inputs
-  const petsRaw = formData.get("petsPayload") as string;
-  let petsPayload: PetRegisterInput[] = [];
-
-  if (petsRaw) {
+  // 2. Validate multi-pet array payload
+  let petsPayloadValidated: PetInput[] = [];
+  if (petsPayload) {
     try {
-      petsPayload = JSON.parse(petsRaw);
-    } catch {
-      petsPayload = [];
-    }
-  } else {
-    // Fallback: Check single pet fields if petsPayload is not provided
-    const petName = formData.get("petName") as string;
-    const petSpecies = (formData.get("petSpecies") as string) || "Dog";
-    const petBreed = formData.get("petBreed") as string;
+      const parsedPets = JSON.parse(petsPayload);
+      const petsValidation = z.array(petInputSchema).safeParse(parsedPets);
 
-    if (petName && petName.trim().length > 0) {
-      petsPayload.push({
-        name: petName.trim(),
-        species: petSpecies,
-        breed: petBreed,
-      });
+      if (!petsValidation.success) {
+        return {
+          error: "Invalid pet information provided. Please verify pet details.",
+          success: false,
+        };
+      }
+
+      petsPayloadValidated = petsValidation.data;
+    } catch {
+      return {
+        error: "Failed to parse pet registration data.",
+        success: false,
+      };
     }
   }
 
-  // 3. Register user in Supabase Auth with metadata
+  // 3. Submit validated account data to Supabase Auth
+  const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email,
     password,
@@ -76,7 +69,7 @@ export async function registerUser(
       data: {
         owner_name: fullName,
         phone: phone,
-        pets: petsPayload, // Handled automatically by our handle_new_user SQL trigger
+        pets: petsPayloadValidated,
       },
     },
   });

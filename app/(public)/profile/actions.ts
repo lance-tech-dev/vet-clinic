@@ -25,7 +25,7 @@ export async function updateProfile(
   const fullName = formData.get("fullName") as string;
   const phone = formData.get("phone") as string;
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from("profiles")
     .update({
       full_name: fullName,
@@ -57,12 +57,12 @@ export async function addPet(
   }
 
   const name = formData.get("name") as string;
-  const species = formData.get("species") as string;
+  const species = (formData.get("species") as string) || "Dog";
   const breed = formData.get("breed") as string;
   const age = formData.get("age") as string;
   const notes = formData.get("notes") as string;
 
-  const { error } = await (supabase as any).from("pets").insert({
+  const { error } = await supabase.from("pets").insert({
     owner_id: user.id,
     name,
     species,
