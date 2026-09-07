@@ -250,7 +250,7 @@ export default async function ContactPage() {
             Need an Appointment Instead?
           </h2>
           <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto font-normal">
-            Skip the waiting time by scheduling your pet's visit online through our automated booking system.
+            Skip the waiting time by scheduling your pet&apos;s visit online through our automated booking system.
           </p>
           <div className="pt-2 flex flex-wrap justify-center gap-4">
             <Link

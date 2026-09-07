@@ -248,7 +248,7 @@ export default async function PublicBranchesPage() {
             <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
               <h3 className="text-base font-bold text-navy-900">Can I bring my pet to a different branch than our usual one?</h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                Yes! Your pet's medical record and treatment history are fully synced across our system. You can visit any VetClinic branch in San Pablo, Calamba, or Santa Rosa seamlessly.
+                Yes! Your pet&apos;s medical record and treatment history are fully synced across our system. You can visit any VetClinic branch in San Pablo, Calamba, or Santa Rosa seamlessly.
               </p>
             </div>
 

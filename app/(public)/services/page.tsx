@@ -16,7 +16,7 @@ export default function ServicesPage() {
           </h1>
 
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-normal">
-            From routine wellness checkups and advanced surgical procedures to gentle grooming and emergency triage—our licensed medical team delivers exceptional care tailored to every stage of your pet's life.
+            From routine wellness checkups and advanced surgical procedures to gentle grooming and emergency triage—our licensed medical team delivers exceptional care tailored to every stage of your pet&apos;s life.
           </p>
 
           <div className="pt-4 flex justify-center">
@@ -188,7 +188,7 @@ export default function ServicesPage() {
       <section className="py-16 bg-navy-950 text-white border-t border-slate-800">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Ready to Schedule Your Pet's Visit?
+            Ready to Schedule Your Pet&apos;s Visit?
           </h2>
           <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto font-normal">
             Choose your preferred clinic branch and time slot. Our veterinary team is ready to care for your companion.

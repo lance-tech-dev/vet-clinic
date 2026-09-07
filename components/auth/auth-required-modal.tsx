@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { ROUTES } from "@/config/constants";
@@ -10,13 +10,15 @@ interface AuthRequiredModalProps {
   onClose: () => void;
 }
 
-export function AuthRequiredModal({ isOpen, onClose }: AuthRequiredModalProps) {
-  const [mounted, setMounted] = useState(false);
+const emptySubscribe = () => () => {};
 
-  // Ensure portal mounts only after client-side hydration
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+export function AuthRequiredModal({ isOpen, onClose }: AuthRequiredModalProps) {
+  // Safe hydration check without calling setState inside useEffect
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   // ESC key listener
   const handleKeyDown = useCallback(
@@ -43,7 +45,7 @@ export function AuthRequiredModal({ isOpen, onClose }: AuthRequiredModalProps) {
     };
   }, [isOpen, handleKeyDown]);
 
-  if (!isOpen || !mounted) return null;
+  if (!isOpen || !isMounted) return null;
 
   return createPortal(
     <div
