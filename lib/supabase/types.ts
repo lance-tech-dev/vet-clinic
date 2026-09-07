@@ -96,6 +96,42 @@ export interface Database {
           }
         ];
       };
+      branches: {
+        Row: {
+          id: string;
+          name: string;
+          city: string;
+          address: string;
+          phone: string;
+          operating_hours: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          city: string;
+          address: string;
+          phone: string;
+          operating_hours?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          city?: string;
+          address?: string;
+          phone?: string;
+          operating_hours?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       media_assets: {
         Row: {
           id: string;

@@ -1,8 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ROUTES } from "@/config/constants";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+
+  // Fetch active clinic branches from Supabase
+  const { data: activeBranches } = await supabase
+    .from("branches")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+
+  const branches = activeBranches || [];
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       {/* 1. Hero Section */}
@@ -52,7 +64,7 @@ export default function Home() {
                   <div className="text-xs text-slate-500 font-medium mt-0.5">Pets Cared For</div>
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-extrabold text-navy-900">3</div>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-navy-900">{branches.length || 3}</div>
                   <div className="text-xs text-slate-500 font-medium mt-0.5">Clinic Branches</div>
                 </div>
                 <div>
@@ -149,7 +161,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. Branch Locations */}
+      {/* 3. Branch Locations (Dynamic from Supabase) */}
       <section id="about" className="py-20 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
@@ -164,28 +176,34 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {BRANCHES.map((branch) => (
-              <div key={branch.city} className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                    {branch.status}
-                  </span>
-                  <span className="text-xs text-slate-400 font-medium">{branch.hours}</span>
+          {branches.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-slate-200/80 text-slate-500 text-sm max-w-xl mx-auto">
+              No active clinic locations listed at the moment. Please contact us directly for inquiries.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {branches.map((branch) => (
+                <div key={branch.id} className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      Open Daily
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium">{branch.operating_hours}</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-navy-900">{branch.name}</h3>
+                    <p className="text-xs text-slate-500 mt-1">{branch.address}</p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-700">📞 {branch.phone}</span>
+                    <Link href={ROUTES.APPOINTMENTS} className="font-bold text-orange-600 hover:underline">
+                      Book Here →
+                    </Link>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-navy-900">{branch.name}</h3>
-                  <p className="text-xs text-slate-500 mt-1">{branch.address}</p>
-                </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-700">📞 {branch.phone}</span>
-                  <Link href={ROUTES.APPOINTMENTS} className="font-bold text-orange-600 hover:underline">
-                    Book Here →
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -304,32 +322,5 @@ const SERVICES = [
     title: "Diagnostics & Laboratory",
     icon: "🧪",
     description: "In-house blood chemistry, CBC analysis, digital X-rays, ultrasound, and rapid test kits for quick, accurate diagnosis.",
-  },
-];
-
-const BRANCHES = [
-  {
-    city: "San Pablo",
-    name: "Main Branch (San Pablo)",
-    address: "San Pablo City, Laguna",
-    hours: "8:00 AM - 6:00 PM",
-    phone: "(049) 501-2345",
-    status: "Open Daily",
-  },
-  {
-    city: "Calamba",
-    name: "Calamba Branch",
-    address: "Calamba City, Laguna",
-    hours: "8:00 AM - 6:00 PM",
-    phone: "(049) 545-6789",
-    status: "Open Daily",
-  },
-  {
-    city: "Santa Rosa",
-    name: "Santa Rosa Branch",
-    address: "Santa Rosa City, Laguna",
-    hours: "8:00 AM - 6:00 PM",
-    phone: "(049) 534-8901",
-    status: "Open Daily",
   },
 ];

@@ -1,21 +1,13 @@
-export default function AdminBranchesPage() {
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div>
-          <h1 className="text-2xl font-bold text-navy-900 tracking-tight">Clinic Branches</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Manage multi-clinic locations, operational hours, and staff assignments.
-          </p>
-        </div>
-        <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm transition-colors cursor-pointer">
-          + Add New Branch
-        </button>
-      </div>
+import { createClient } from "@/lib/supabase/server";
+import { BranchView, type Branch } from "./branch-view";
 
-      <div className="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-xs text-center py-12">
-        <p className="text-sm font-medium text-slate-500">Branch management coming soon.</p>
-      </div>
-    </div>
-  );
+export default async function AdminBranchesPage() {
+  const supabase = await createClient();
+
+  const { data: branches } = await supabase
+    .from("branches")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  return <BranchView branches={(branches as Branch[]) || []} />;
 }
