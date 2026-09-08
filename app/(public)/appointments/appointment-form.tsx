@@ -66,7 +66,7 @@ export function AppointmentForm({ branches }: AppointmentFormProps) {
   const timeRef = useRef<HTMLDivElement>(null);
 
   const [bookingSummary, setBookingSummary] = useState<{
-    branchAddress: string;
+    branchName: string;
     service: string;
     date: string;
     time: string;
@@ -128,7 +128,7 @@ export function AppointmentForm({ branches }: AppointmentFormProps) {
     setValidationError(null);
 
     if (!selectedBranchId) {
-      setValidationError("Please select a clinic branch location.");
+      setValidationError("Please select a clinic branch.");
       return;
     }
     if (!selectedService) {
@@ -148,7 +148,7 @@ export function AppointmentForm({ branches }: AppointmentFormProps) {
     const branch = branches.find((b) => b.id === selectedBranchId);
 
     setBookingSummary({
-      branchAddress: branch ? branch.address : "Selected Location",
+      branchName: branch ? branch.name : "Selected Branch",
       service: selectedService,
       date: formatDisplayDate(selectedDateStr),
       time: selectedTimeSlot,
@@ -184,8 +184,8 @@ export function AppointmentForm({ branches }: AppointmentFormProps) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-700">
             <div>
-              <span className="text-slate-400 font-medium block">Clinic Location Address:</span>
-              <span className="font-bold text-navy-900">{bookingSummary.branchAddress}</span>
+              <span className="text-slate-400 font-medium block">Clinic Branch:</span>
+              <span className="font-bold text-navy-900">{bookingSummary.branchName}</span>
             </div>
             <div>
               <span className="text-slate-400 font-medium block">Service Required:</span>
@@ -249,15 +249,15 @@ export function AppointmentForm({ branches }: AppointmentFormProps) {
             1
           </span>
           <h2 className="text-sm font-bold text-navy-900 uppercase tracking-wider">
-            Select Preferred Location & Service
+            Select Preferred Branch & Service
           </h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {/* 1. Custom Branch Address Dropdown */}
+          {/* 1. Custom Branch Name Dropdown */}
           <div className="relative" ref={branchRef}>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Preferred Branch Address *
+              Preferred Branch *
             </label>
 
             <button
@@ -272,14 +272,14 @@ export function AppointmentForm({ branches }: AppointmentFormProps) {
                 isBranchOpen
                   ? "border-orange-500 ring-2 ring-orange-500/20 bg-white"
                   : "border-slate-200 hover:border-slate-300"
-              } ${selectedBranch ? "text-navy-900" : "text-slate-400"}`}
+              } ${selectedBranch ? "text-navy-900 font-semibold" : "text-slate-400"}`}
             >
               <span className="truncate">
                 {selectedBranch
-                  ? selectedBranch.address
+                  ? selectedBranch.name
                   : branches.length === 0
                   ? "No active branches available"
-                  : "-- Select Branch Address --"}
+                  : "-- Select Preferred Branch --"}
               </span>
               <svg
                 className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2 ${
@@ -315,7 +315,7 @@ export function AppointmentForm({ branches }: AppointmentFormProps) {
                             : "text-slate-700 hover:bg-slate-100 hover:text-navy-900"
                         }`}
                       >
-                        <span className="truncate pr-2">{branch.address}</span>
+                        <span className="truncate pr-2">{branch.name}</span>
                         {isSelected && <span className="text-orange-500 text-sm font-bold">✓</span>}
                       </div>
                     );

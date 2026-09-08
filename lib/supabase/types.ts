@@ -6,96 +6,9 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type UserRole = "admin" | "staff" | "user";
-
 export interface Database {
   public: {
     Tables: {
-      profiles: {
-        Row: {
-          id: string;
-          email: string;
-          full_name: string | null;
-          phone: string | null;
-          role: UserRole;
-          avatar_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          email: string;
-          full_name?: string | null;
-          phone?: string | null;
-          role?: UserRole;
-          avatar_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string;
-          full_name?: string | null;
-          phone?: string | null;
-          role?: UserRole;
-          avatar_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "profiles_id_fkey";
-            columns: ["id"];
-            isOneToOne: true;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
-      pets: {
-        Row: {
-          id: string;
-          owner_id: string;
-          name: string;
-          species: string;
-          breed: string | null;
-          age: string | null;
-          notes: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          owner_id: string;
-          name: string;
-          species?: string;
-          breed?: string | null;
-          age?: string | null;
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          owner_id?: string;
-          name?: string;
-          species?: string;
-          breed?: string | null;
-          age?: string | null;
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "pets_owner_id_fkey";
-            columns: ["owner_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
       branches: {
         Row: {
           id: string;
@@ -104,6 +17,7 @@ export interface Database {
           address: string;
           phone: string;
           operating_hours: string;
+          gmap_url: string | null;
           is_active: boolean;
           created_at: string;
           updated_at: string;
@@ -115,6 +29,7 @@ export interface Database {
           address: string;
           phone: string;
           operating_hours?: string;
+          gmap_url?: string | null;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -126,11 +41,137 @@ export interface Database {
           address?: string;
           phone?: string;
           operating_hours?: string;
+          gmap_url?: string | null;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [];
+      };
+      staff_members: {
+        Row: {
+          id: string;
+          branch_id: string;
+          full_name: string;
+          role_title: string;
+          specialization: string | null;
+          avatar_url: string | null;
+          phone: string | null;
+          email: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          branch_id: string;
+          full_name: string;
+          role_title: string;
+          specialization?: string | null;
+          avatar_url?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          branch_id?: string;
+          full_name?: string;
+          role_title?: string;
+          specialization?: string | null;
+          avatar_url?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_branch_id_fkey";
+            columns: ["branch_id"];
+            referencedRelation: "branches";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      profiles: {
+        Row: {
+          id: string;
+          email: string;
+          full_name: string | null;
+          phone: string | null;
+          role: "admin" | "staff" | "user";
+          avatar_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          email: string;
+          full_name?: string | null;
+          phone?: string | null;
+          role?: "admin" | "staff" | "user";
+          avatar_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          full_name?: string | null;
+          phone?: string | null;
+          role?: "admin" | "staff" | "user";
+          avatar_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pets: {
+        Row: {
+          id: string;
+          owner_id: string;
+          name: string;
+          species: string | null;
+          breed: string | null;
+          age: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          name: string;
+          species?: string | null;
+          breed?: string | null;
+          age?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          name?: string;
+          species?: string | null;
+          breed?: string | null;
+          age?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pets_owner_id_fkey";
+            columns: ["owner_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       media_assets: {
         Row: {
@@ -167,7 +208,6 @@ export interface Database {
           {
             foreignKeyName: "media_assets_uploaded_by_fkey";
             columns: ["uploaded_by"];
-            isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           }
@@ -179,15 +219,14 @@ export interface Database {
     };
     Functions: {
       is_admin: {
-        Args: { user_id: string };
+        Args: {
+          user_id: string;
+        };
         Returns: boolean;
       };
     };
     Enums: {
-      user_role: UserRole;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
+      user_role: "admin" | "staff" | "user";
     };
   };
 }

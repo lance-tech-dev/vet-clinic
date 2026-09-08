@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ROUTES } from "@/config/constants";
 
-// Force Next.js to re-query Supabase on every request so admin branch updates sync instantly
+// Force Next.js to re-query Supabase on every request so admin branch & staff updates sync instantly
 export const dynamic = "force-dynamic";
 
 interface Branch {
@@ -12,14 +12,27 @@ interface Branch {
   address: string;
   phone: string;
   operating_hours: string;
+  gmap_url?: string | null;
   is_active: boolean;
   created_at: string;
+}
+
+interface StaffMember {
+  id: string;
+  branch_id: string;
+  full_name: string;
+  role_title: string;
+  specialization: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  email: string | null;
+  is_active: boolean;
 }
 
 export default async function PublicBranchesPage() {
   const supabase = await createClient();
 
-  // Fetch active clinic branches from Supabase
+  // 1. Fetch active clinic branches
   const { data: rawBranches } = await supabase
     .from("branches")
     .select("*")
@@ -27,6 +40,15 @@ export default async function PublicBranchesPage() {
     .order("created_at", { ascending: true });
 
   const branches = (rawBranches as Branch[]) || [];
+
+  // 2. Fetch active staff members
+  const { data: rawStaff } = await supabase
+    .from("staff_members")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+
+  const staffMembers = (rawStaff as StaffMember[]) || [];
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-800">
@@ -42,7 +64,7 @@ export default async function PublicBranchesPage() {
           </h1>
 
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-normal">
-            Equipped with modern surgical suites, diagnostic laboratories, in-house pharmacies, and pet spas across Laguna. Your pet’s medical record is synced seamlessly across all our locations.
+            Equipped with modern surgical suites, diagnostic laboratories, in-house pharmacies, and pet spas across Laguna. Your pet&apos;s medical record is synced seamlessly across all our locations.
           </p>
 
           <div className="pt-2 flex flex-wrap justify-center gap-4 text-xs font-semibold text-slate-600">
@@ -70,7 +92,7 @@ export default async function PublicBranchesPage() {
               Our Physical Clinic Branches
             </h2>
             <p className="text-slate-600 text-sm sm:text-base">
-              Select a clinic location to view operating schedules, direct telephone lines, or schedule an online booking.
+              Select a clinic location to view operating schedules, assigned veterinary staff, Google Maps directions, or schedule an online booking.
             </p>
           </div>
 
@@ -86,113 +108,170 @@ export default async function PublicBranchesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {branches.map((branch) => (
-                <div
-                  key={branch.id}
-                  className="bg-slate-50/80 p-8 rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-xl hover:bg-white hover:border-orange-200/80 transition-all duration-300 flex flex-col justify-between group"
-                >
-                  <div className="space-y-6">
-                    {/* Header Badge & City Tag */}
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100/80 text-emerald-800 border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Open Daily
-                      </span>
-                      <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-navy-900 text-white uppercase tracking-wider">
-                        {branch.city}
-                      </span>
+              {branches.map((branch) => {
+                const branchStaff = staffMembers.filter((s) => s.branch_id === branch.id);
+
+                return (
+                  <div
+                    key={branch.id}
+                    className="bg-slate-50/80 p-8 rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-xl hover:bg-white hover:border-orange-200/80 transition-all duration-300 flex flex-col justify-between space-y-6 group"
+                  >
+                    <div className="space-y-6">
+                      {/* Header Badge & City Tag */}
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100/80 text-emerald-800 border border-emerald-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Open Daily
+                        </span>
+                        <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-navy-900 text-white uppercase tracking-wider">
+                          {branch.city}
+                        </span>
+                      </div>
+
+                      {/* Branch Name & Address */}
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold text-navy-900 group-hover:text-orange-500 transition-colors">
+                          {branch.name}
+                        </h3>
+                        <div className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed font-normal">
+                          <svg
+                            className="w-4 h-4 text-slate-400 shrink-0 mt-0.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                          <span>{branch.address}</span>
+                        </div>
+                      </div>
+
+                      {/* Hours, Contact Info & Google Maps */}
+                      <div className="space-y-2 pt-3 border-t border-slate-200/60 text-xs">
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="font-medium text-slate-400 flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                              <polyline points="12 6 12 12 16 14" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            Hours:
+                          </span>
+                          <span className="font-semibold text-slate-800">{branch.operating_hours}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="font-medium text-slate-400 flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            Phone:
+                          </span>
+                          <span className="font-bold text-navy-900">{branch.phone}</span>
+                        </div>
+
+                        {/* Requirement #4: Google Maps Link Integration */}
+                        {branch.gmap_url && (
+                          <div className="pt-2">
+                            <a
+                              href={branch.gmap_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-orange-50 hover:text-orange-600 text-slate-700 font-bold text-xs transition-colors border border-slate-200/80"
+                            >
+                              <span>📍 Get Directions on Google Maps</span>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Requirement #3: Branch Staff & Specialists Section */}
+                      <div className="pt-4 border-t border-slate-200/60 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-extrabold text-navy-900 uppercase tracking-wider">
+                            Branch Team & Vets ({branchStaff.length})
+                          </span>
+                        </div>
+
+                        {branchStaff.length === 0 ? (
+                          <div className="text-[11px] text-slate-400 italic bg-white/60 p-2.5 rounded-xl border border-slate-200/60">
+                            Medical team details updating for this location.
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {branchStaff.map((staff) => {
+                              const initial = staff.full_name ? staff.full_name.charAt(0).toUpperCase() : "S";
+
+                              return (
+                                <div
+                                  key={staff.id}
+                                  className="flex items-center justify-between p-2.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs text-xs"
+                                >
+                                  <div className="flex items-center gap-2.5 truncate pr-2">
+                                    {staff.avatar_url ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={staff.avatar_url}
+                                        alt={staff.full_name}
+                                        className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="w-7 h-7 rounded-full bg-navy-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">
+                                        {initial}
+                                      </div>
+                                    )}
+                                    <div className="truncate text-left">
+                                      <div className="font-bold text-navy-900 truncate">
+                                        {staff.full_name}
+                                      </div>
+                                      <div className="text-[10px] font-semibold text-orange-600 truncate">
+                                        {staff.role_title}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {staff.specialization && (
+                                    <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md shrink-0 font-medium hidden sm:inline">
+                                      {staff.specialization}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Branch Name & Address */}
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-bold text-navy-900 group-hover:text-orange-500 transition-colors">
-                        {branch.name}
-                      </h3>
-                      <div className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed font-normal">
-                        <svg
-                          className="w-4 h-4 text-slate-400 shrink-0 mt-0.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
+                    {/* Booking CTA */}
+                    <div className="pt-4 border-t border-slate-200/60">
+                      <Link
+                        href={ROUTES.APPOINTMENTS}
+                        className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-navy-900 hover:bg-orange-500 text-white font-bold text-xs shadow-xs transition-all duration-200 group-hover:shadow-md"
+                      >
+                        Book at {branch.city} Branch
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2" strokeLinecap="round" />
+                          <polyline points="12 5 19 12 12 19" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        <span>{branch.address}</span>
-                      </div>
-                    </div>
-
-                    {/* Hours & Contact Info */}
-                    <div className="space-y-2 pt-3 border-t border-slate-200/60 text-xs">
-                      <div className="flex items-center justify-between text-slate-600">
-                        <span className="font-medium text-slate-400 flex items-center gap-1.5">
-                          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                            <polyline points="12 6 12 12 16 14" strokeWidth="2" strokeLinecap="round" />
-                          </svg>
-                          Hours:
-                        </span>
-                        <span className="font-semibold text-slate-800">{branch.operating_hours}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-slate-600">
-                        <span className="font-medium text-slate-400 flex items-center gap-1.5">
-                          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                          Phone:
-                        </span>
-                        <span className="font-bold text-navy-900">{branch.phone}</span>
-                      </div>
-                    </div>
-
-                    {/* Available On-Site Services Badges */}
-                    <div className="pt-2">
-                      <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
-                        Branch Features:
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 shadow-2xs">
-                          🩺 Consultations
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 shadow-2xs">
-                          ✂️ Grooming Spa
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 shadow-2xs">
-                          🔬 Lab & X-Ray
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 shadow-2xs">
-                          💊 Pharmacy
-                        </span>
-                      </div>
+                      </Link>
                     </div>
                   </div>
-
-                  {/* Booking CTA */}
-                  <div className="pt-6 mt-6 border-t border-slate-200/60">
-                    <Link
-                      href={ROUTES.APPOINTMENTS}
-                      className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-navy-900 hover:bg-orange-500 text-white font-bold text-xs shadow-xs transition-all duration-200 group-hover:shadow-md"
-                    >
-                      Book at {branch.city} Branch
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2" strokeLinecap="round" />
-                        <polyline points="12 5 19 12 12 19" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -210,7 +289,7 @@ export default async function PublicBranchesPage() {
                 One Medical Record Across All Branches
               </h2>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
-                No matter which branch you visit, our licensed veterinarians access your pet’s complete medical history, vaccination records, and prescription logs in real time.
+                No matter which branch you visit, our licensed veterinarians access your pet&apos;s complete medical history, vaccination records, and prescription logs in real time.
               </p>
             </div>
 

@@ -141,6 +141,9 @@
 html {
   scroll-behavior: smooth;
   color-scheme: light;
+  /* Prevents horizontal layout jumps when switching tabs or pages with varying height */
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 body {

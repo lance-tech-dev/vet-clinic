@@ -14,6 +14,7 @@ export const ADMIN_NAV_ITEMS = [
   { label: "Inbox", href: "/admin/inbox" },
   { label: "Appointments", href: "/admin/appointments" },
   { label: "Branches", href: "/admin/branches" },
+  { label: "Staff", href: "/admin/staff" },
 ] as const;
 
 interface AdminNavbarProps {
