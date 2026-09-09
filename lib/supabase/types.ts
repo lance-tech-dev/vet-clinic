@@ -97,6 +97,73 @@ export interface Database {
           }
         ];
       };
+      appointments: {
+        Row: {
+          id: string;
+          user_id: string;
+          branch_id: string;
+          service_name: string;
+          appointment_date: string;
+          time_slot: string;
+          owner_name: string;
+          phone: string;
+          pet_name: string;
+          species_breed: string;
+          notes: string | null;
+          status: "scheduled" | "completed" | "cancelled";
+          reschedule_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          branch_id: string;
+          service_name: string;
+          appointment_date: string;
+          time_slot: string;
+          owner_name: string;
+          phone: string;
+          pet_name: string;
+          species_breed: string;
+          notes?: string | null;
+          status?: "scheduled" | "completed" | "cancelled";
+          reschedule_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          branch_id?: string;
+          service_name?: string;
+          appointment_date?: string;
+          time_slot?: string;
+          owner_name?: string;
+          phone?: string;
+          pet_name?: string;
+          species_breed?: string;
+          notes?: string | null;
+          status?: "scheduled" | "completed" | "cancelled";
+          reschedule_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "appointments_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_branch_id_fkey";
+            columns: ["branch_id"];
+            referencedRelation: "branches";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       profiles: {
         Row: {
           id: string;
@@ -227,6 +294,7 @@ export interface Database {
     };
     Enums: {
       user_role: "admin" | "staff" | "user";
+      appointment_status: "scheduled" | "completed" | "cancelled";
     };
   };
 }
