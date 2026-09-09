@@ -30,8 +30,17 @@ export function RegisterForm() {
   const [hasPet, setHasPet] = useState(true);
   const [petsList, setPetsList] = useState<RegistrationPetItem[]>([createEmptyPet()]);
   const [clientError, setClientError] = useState<string | null>(null);
+  const [prevError, setPrevError] = useState<string | null>(null);
 
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Sync error step safely during render (prevents react-hooks/set-state-in-effect error)
+  if (state.error && state.error !== prevError) {
+    setPrevError(state.error);
+    if (state.errorStep && currentPage !== state.errorStep) {
+      setCurrentPage(state.errorStep);
+    }
+  }
 
   // Redirect to Landing Page upon successful registration
   useEffect(() => {
@@ -40,14 +49,6 @@ export function RegisterForm() {
       router.refresh();
     }
   }, [state.success, router]);
-
-  // Auto-Redirect to the exact error step whenever an error is returned
-  useEffect(() => {
-    if (state.error && state.errorStep) {
-      setCurrentPage(state.errorStep);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [state.error, state.errorStep]);
 
   // Multi-Pet Handlers
   const handleAddPet = () => {
@@ -59,7 +60,11 @@ export function RegisterForm() {
     setPetsList((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handlePetChange = (index: number, field: keyof RegistrationPetItem, value: any) => {
+  const handlePetChange = (
+    index: number,
+    field: keyof RegistrationPetItem,
+    value: string | boolean
+  ) => {
     setPetsList((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { PatientView, type PetWithLogs } from "./patient-view";
-import type { PetFullRecord, MedicalLogsData } from "@/components/pets/pet-detail-modal";
+import { PatientView, type PetWithMedicalLogs } from "./patient-view";
+import type { PetFullRecord } from "@/components/pets/pet-detail-modal";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +15,8 @@ export default async function AdminPatientsPage() {
 
   const pets = (rawPets as PetFullRecord[]) || [];
 
-  // 2. Fetch medical history logs for each pet
-  const petsWithLogs: PetWithLogs[] = await Promise.all(
+  // 2. Pre-fetch all 5 medical logs for each pet
+  const patients: PetWithMedicalLogs[] = await Promise.all(
     pets.map(async (pet) => {
       const [
         { data: groomingLogs },
@@ -32,17 +32,18 @@ export default async function AdminPatientsPage() {
         supabase.from("pet_dental_logs").select("*").eq("pet_id", pet.id).order("record_date", { ascending: false }),
       ]);
 
-      const logs: MedicalLogsData = {
-        groomingLogs: groomingLogs || [],
-        vaccinationLogs: vaccinationLogs || [],
-        parasiteLogs: parasiteLogs || [],
-        visitLogs: visitLogs || [],
-        dentalLogs: dentalLogs || [],
+      return {
+        ...pet,
+        logs: {
+          groomingLogs: groomingLogs || [],
+          vaccinationLogs: vaccinationLogs || [],
+          parasiteLogs: parasiteLogs || [],
+          visitLogs: visitLogs || [],
+          dentalLogs: dentalLogs || [],
+        },
       };
-
-      return { pet, logs };
     })
   );
 
-  return <PatientView petsWithLogs={petsWithLogs} />;
+  return <PatientView patients={patients} />;
 }

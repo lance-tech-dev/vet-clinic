@@ -29,12 +29,62 @@ export interface PetFullRecord {
   notes: string | null;
 }
 
+export interface GroomingLog {
+  id: string;
+  log_date: string;
+  is_grooming: boolean;
+  is_boarding: boolean;
+  medical_history?: string | null;
+  medications_supplements?: string | null;
+  special_needs_preferences?: string | null;
+}
+
+export interface VaccinationLog {
+  id: string;
+  date_given: string;
+  against_disease: string;
+  vaccine_used: string;
+  lot_batch_no?: string | null;
+  weight_kg?: number | null;
+  next_due?: string | null;
+  veterinarian: string;
+}
+
+export interface ParasiteLog {
+  id: string;
+  date_given: string;
+  against_parasites: string;
+  preventative_used: string;
+  weight_kg?: number | null;
+  next_due?: string | null;
+  veterinarian: string;
+}
+
+export interface VisitLog {
+  id: string;
+  visit_date: string;
+  reason_for_visit: string;
+  clinical_findings: string;
+  vet_instructions: string;
+  follow_up_date?: string | null;
+  veterinarian: string;
+}
+
+export interface DentalLog {
+  id: string;
+  record_date: string;
+  has_salivation: boolean;
+  has_periodontal_disease: boolean;
+  notes?: string | null;
+  veterinarian?: string | null;
+}
+
 export interface MedicalLogsData {
-  groomingLogs: any[];
-  vaccinationLogs: any[];
-  parasiteLogs: any[];
-  visitLogs: any[];
-  dentalLogs: any[];
+  groomingLogs: GroomingLog[];
+  vaccinationLogs: VaccinationLog[];
+  parasiteLogs: ParasiteLog[];
+  visitLogs: VisitLog[];
+  dentalLogs: DentalLog[];
 }
 
 interface PetDetailModalProps {
@@ -74,7 +124,7 @@ export function PetDetailModal({
 
     startTransition(async () => {
       const res = await addGroomingLog(formData);
-      if (!res.success) setErrorMsg(res.error);
+      if (!res.success) setErrorMsg(res.error ?? "Failed to add grooming log.");
       else (e.target as HTMLFormElement).reset();
     });
   };
@@ -87,7 +137,7 @@ export function PetDetailModal({
 
     startTransition(async () => {
       const res = await addVaccinationLog(formData);
-      if (!res.success) setErrorMsg(res.error);
+      if (!res.success) setErrorMsg(res.error ?? "Failed to add vaccination log.");
       else (e.target as HTMLFormElement).reset();
     });
   };
@@ -100,7 +150,7 @@ export function PetDetailModal({
 
     startTransition(async () => {
       const res = await addParasiteLog(formData);
-      if (!res.success) setErrorMsg(res.error);
+      if (!res.success) setErrorMsg(res.error ?? "Failed to add parasite log.");
       else (e.target as HTMLFormElement).reset();
     });
   };
@@ -113,7 +163,7 @@ export function PetDetailModal({
 
     startTransition(async () => {
       const res = await addMedicalVisitLog(formData);
-      if (!res.success) setErrorMsg(res.error);
+      if (!res.success) setErrorMsg(res.error ?? "Failed to add medical visit log.");
       else (e.target as HTMLFormElement).reset();
     });
   };
@@ -130,7 +180,7 @@ export function PetDetailModal({
         chartData.notes,
         chartData.veterinarian
       );
-      if (!res.success) setErrorMsg(res.error);
+      if (!res.success) setErrorMsg(res.error ?? "Failed to add dental log.");
     });
   };
 
@@ -176,7 +226,7 @@ export function PetDetailModal({
           </button>
         </div>
 
-        {/* General Pet & Owner Info Accordion Box */}
+        {/* General Pet & Owner Info Summary */}
         <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-xs space-y-3">
           <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-200 pb-1.5">
             General Pet & Owner Information Summary
@@ -215,7 +265,7 @@ export function PetDetailModal({
           </div>
         )}
 
-        {/* Medical History Tabs Header (Cleaned up Tab Titles) */}
+        {/* Medical History Tabs Header */}
         <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto">
           {[
             { id: "grooming", label: "Grooming & Boarding" },
@@ -227,7 +277,7 @@ export function PetDetailModal({
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === tab.id
                   ? "bg-white text-navy-900 shadow-xs"
@@ -293,7 +343,7 @@ export function PetDetailModal({
               {logs.groomingLogs.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-4">No grooming or boarding records found.</p>
               ) : (
-                logs.groomingLogs.map((log: any) => (
+                logs.groomingLogs.map((log) => (
                   <div key={log.id} className="p-4 rounded-2xl bg-white border border-slate-200 text-xs space-y-1">
                     <div className="flex items-center justify-between font-bold text-navy-900">
                       <span>📅 {log.log_date} ({log.is_grooming ? "✂️ Grooming" : ""} {log.is_boarding ? "🏠 Boarding" : ""})</span>
@@ -360,7 +410,7 @@ export function PetDetailModal({
               {logs.vaccinationLogs.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-4">No vaccination records found.</p>
               ) : (
-                logs.vaccinationLogs.map((log: any) => (
+                logs.vaccinationLogs.map((log) => (
                   <div key={log.id} className="p-4 rounded-2xl bg-white border border-slate-200 text-xs flex flex-wrap justify-between gap-2">
                     <div>
                       <div className="font-bold text-navy-900">💉 {log.against_disease} ({log.vaccine_used})</div>
@@ -424,7 +474,7 @@ export function PetDetailModal({
               {logs.parasiteLogs.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-4">No parasite preventative records found.</p>
               ) : (
-                logs.parasiteLogs.map((log: any) => (
+                logs.parasiteLogs.map((log) => (
                   <div key={log.id} className="p-4 rounded-2xl bg-white border border-slate-200 text-xs flex flex-wrap justify-between gap-2">
                     <div>
                       <div className="font-bold text-navy-900">🛡️ {log.against_parasites} ({log.preventative_used})</div>
@@ -490,7 +540,7 @@ export function PetDetailModal({
               {logs.visitLogs.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-4">No medical visit records found.</p>
               ) : (
-                logs.visitLogs.map((log: any) => (
+                logs.visitLogs.map((log) => (
                   <div key={log.id} className="p-4 rounded-2xl bg-white border border-slate-200 text-xs space-y-1.5">
                     <div className="flex items-center justify-between font-bold text-navy-900">
                       <span>🩺 Visit: {log.visit_date} ({log.reason_for_visit})</span>
@@ -523,7 +573,7 @@ export function PetDetailModal({
               {logs.dentalLogs.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-4">No dental logs recorded yet.</p>
               ) : (
-                logs.dentalLogs.map((log: any) => (
+                logs.dentalLogs.map((log) => (
                   <div key={log.id} className="p-4 rounded-2xl bg-white border border-slate-200 text-xs space-y-1">
                     <div className="flex items-center justify-between font-bold text-navy-900">
                       <span>🪥 Dental Exam: {log.record_date}</span>

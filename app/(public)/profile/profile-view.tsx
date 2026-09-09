@@ -157,7 +157,7 @@ export function ProfileView({
     <main className="min-h-screen bg-slate-50 py-10 sm:py-14">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
-        {/* 1. Profile Header Banner with Clean Button Stack */}
+        {/* 1. Profile Header Banner */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6 text-center lg:text-left">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left flex-1">
             {userData.avatarUrl ? (
@@ -826,6 +826,114 @@ export function ProfileView({
                   className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {isPetPending ? "Registering..." : "Save Pet Profile"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 6. EMERGENCY RESCHEDULE MODAL PORTAL */}
+      {reschedulingApp && isMounted && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reschedule-modal-title"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-navy-950/70 backdrop-blur-xs animate-in fade-in duration-200"
+        >
+          <div className="fixed inset-0" onClick={() => setReschedulingApp(null)} aria-hidden="true" />
+
+          <div className="relative z-10 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-5 my-auto animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h2 id="reschedule-modal-title" className="text-lg font-bold text-navy-900">
+                  Emergency Reschedule
+                </h2>
+                <p className="text-xs text-orange-600 font-bold mt-0.5">
+                  Patient: {reschedulingApp.pet_name} ({reschedulingApp.service_name})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReschedulingApp(null)}
+                className="text-slate-400 hover:text-navy-900 p-1.5 rounded-lg text-sm transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {rescheduleState?.error && (
+              <div role="alert" className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
+                ⚠️ {rescheduleState.error}
+              </div>
+            )}
+
+            <form ref={rescheduleFormRef} action={rescheduleAction} className="space-y-4">
+              <input type="hidden" name="appointmentId" value={reschedulingApp.id} />
+
+              <div>
+                <label htmlFor="newDate" className="block text-xs font-semibold text-slate-700 mb-1">
+                  New Preferred Date *
+                </label>
+                <input
+                  id="newDate"
+                  type="date"
+                  name="newDate"
+                  required
+                  defaultValue={reschedulingApp.appointment_date}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="newTimeSlot" className="block text-xs font-semibold text-slate-700 mb-1">
+                  New Preferred Time Slot *
+                </label>
+                <select
+                  id="newTimeSlot"
+                  name="newTimeSlot"
+                  required
+                  defaultValue={reschedulingApp.time_slot}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
+                >
+                  {TIME_SLOTS.map((slot) => (
+                    <option key={slot} value={slot}>
+                      {slot}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="reason" className="block text-xs font-bold text-navy-900 mb-1">
+                  Reason for Rescheduling / Emergency *
+                </label>
+                <textarea
+                  id="reason"
+                  name="reason"
+                  required
+                  rows={3}
+                  placeholder="e.g. Medical emergency, sudden work conflict, or pet symptom change..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setReschedulingApp(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isReschedulePending}
+                  className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isReschedulePending ? "Updating..." : "Confirm Emergency Reschedule"}
                 </button>
               </div>
             </form>

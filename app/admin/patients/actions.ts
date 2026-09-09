@@ -4,65 +4,48 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ROUTES } from "@/config/constants";
 
-export interface ActionResponse {
+export interface PatientActionResponse {
   success: boolean;
-  error: string | null;
-  data?: any;
+  error?: string;
+  data?: unknown;
 }
 
-// ============================================================================
-// 1. PET GENERAL & OWNER INFO ACTIONS
-// ============================================================================
+export async function upsertPet(formData: FormData): Promise<PatientActionResponse> {
+  const supabase = await createClient();
 
-export async function upsertPet(
-  petId: string | null,
-  formData: FormData
-): Promise<ActionResponse> {
-  try {
-    const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Unauthenticated session." };
 
-    if (!user) {
-      return { success: false, error: "Unauthenticated session." };
-    }
+  const id = formData.get("id") as string;
+  const ownerIdInput = (formData.get("ownerId") as string) || (formData.get("owner_id") as string);
+  const name = (formData.get("name") as string)?.trim();
+  const species = (formData.get("species") as string)?.trim();
+  const breed = (formData.get("breed") as string)?.trim() || null;
+  const sex = (formData.get("sex") as string)?.trim();
+  const isNeutered = formData.get("isNeutered") === "true" || formData.get("isNeutered") === "on";
+  const dateOfBirth = (formData.get("dateOfBirth") as string)?.trim() || null;
+  const microchipNo = (formData.get("microchipNo") as string)?.trim() || null;
+  const colorMarkings = (formData.get("colorMarkings") as string)?.trim() || null;
 
-    // Required Pet Info
-    const name = (formData.get("name") as string)?.trim();
-    const species = (formData.get("species") as string)?.trim();
-    const breed = (formData.get("breed") as string)?.trim() || null;
-    const sex = (formData.get("sex") as string)?.trim();
-    const isNeutered = formData.get("isNeutered") === "true" || formData.get("isNeutered") === "on";
-    const dateOfBirth = (formData.get("dateOfBirth") as string)?.trim();
-    const microchipNo = (formData.get("microchipNo") as string)?.trim() || null;
-    const colorMarkings = (formData.get("colorMarkings") as string)?.trim();
+  const ownerName = (formData.get("ownerName") as string)?.trim() || null;
+  const ownerAddress = (formData.get("ownerAddress") as string)?.trim() || null;
+  const ownerPhone = (formData.get("ownerPhone") as string)?.trim() || null;
+  const ownerEmail = (formData.get("ownerEmail") as string)?.trim() || null;
+  const authorizedHandlers = (formData.get("authorizedHandlers") as string)?.trim() || null;
 
-    // Required Owner & Handler Info
-    const ownerName = (formData.get("ownerName") as string)?.trim();
-    const ownerAddress = (formData.get("ownerAddress") as string)?.trim();
-    const ownerPhone = (formData.get("ownerPhone") as string)?.trim();
-    const ownerEmail = (formData.get("ownerEmail") as string)?.trim();
-    const authorizedHandlers = (formData.get("authorizedHandlers") as string)?.trim();
+  if (!name || !species || !sex) {
+    return { success: false, error: "Pet Name, Species, and Sex are required fields." };
+  }
 
-    const notes = (formData.get("notes") as string)?.trim() || null;
-    const targetOwnerId = (formData.get("ownerId") as string)?.trim() || user.id;
+  // Fallback to active admin ID if ownerId isn't explicitly provided
+  const ownerId = ownerIdInput || user.id;
 
-    // Strict Validation
-    if (!name) return { success: false, error: "Pet's name is required." };
-    if (!species) return { success: false, error: "Species is required." };
-    if (!sex) return { success: false, error: "Pet sex is required." };
-    if (!dateOfBirth) return { success: false, error: "Date of Birth is required." };
-    if (!colorMarkings) return { success: false, error: "Color/Markings & Identification details are required." };
-    if (!ownerName) return { success: false, error: "Owner full name is required." };
-    if (!ownerAddress) return { success: false, error: "Owner home address is required." };
-    if (!ownerPhone) return { success: false, error: "Owner mobile number is required." };
-    if (!ownerEmail) return { success: false, error: "Owner email address is required." };
-    if (!authorizedHandlers) return { success: false, error: "Authorized pet handler details are required." };
-
-    const payload = {
-      owner_id: targetOwnerId,
+  let error;
+  if (id) {
+    const updatePayload = {
       name,
       species,
       breed,
@@ -76,84 +59,68 @@ export async function upsertPet(
       owner_phone: ownerPhone,
       owner_email: ownerEmail,
       authorized_handlers: authorizedHandlers,
-      notes,
       updated_at: new Date().toISOString(),
     };
-
-    let resultError = null;
-    let savedData = null;
-
-    if (petId) {
-      const { data, error } = await supabase
-        .from("pets")
-        .update(payload)
-        .eq("id", petId)
-        .select()
-        .single();
-
-      resultError = error;
-      savedData = data;
-    } else {
-      const { data, error } = await supabase
-        .from("pets")
-        .insert(payload)
-        .select()
-        .single();
-
-      resultError = error;
-      savedData = data;
-    }
-
-    if (resultError) {
-      return { success: false, error: resultError.message };
-    }
-
-    revalidatePath(ROUTES.PROFILE);
-    revalidatePath(ROUTES.ADMIN + "/patients");
-    revalidatePath(ROUTES.ADMIN + "/owners");
-
-    return { success: true, error: null, data: savedData };
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Failed to save pet record.",
+    const res = await supabase.from("pets").update(updatePayload).eq("id", id);
+    error = res.error;
+  } else {
+    const insertPayload = {
+      owner_id: ownerId,
+      name,
+      species,
+      breed,
+      sex,
+      is_neutered: isNeutered,
+      date_of_birth: dateOfBirth,
+      microchip_no: microchipNo,
+      color_markings: colorMarkings,
+      owner_name: ownerName,
+      owner_address: ownerAddress,
+      owner_phone: ownerPhone,
+      owner_email: ownerEmail,
+      authorized_handlers: authorizedHandlers,
+      updated_at: new Date().toISOString(),
     };
+    const res = await supabase.from("pets").insert(insertPayload);
+    error = res.error;
   }
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath(ROUTES.ADMIN + "/patients");
+  revalidatePath(ROUTES.ADMIN + "/owners");
+  return { success: true };
 }
 
-export async function deletePet(petId: string): Promise<ActionResponse> {
+export async function deletePet(petId: string): Promise<PatientActionResponse> {
   const supabase = await createClient();
+
+  if (!petId) {
+    return { success: false, error: "Pet ID is required for deletion." };
+  }
 
   const { error } = await supabase.from("pets").delete().eq("id", petId);
 
-  if (error) {
-    return { success: false, error: error.message };
-  }
+  if (error) return { success: false, error: error.message };
 
-  revalidatePath(ROUTES.PROFILE);
   revalidatePath(ROUTES.ADMIN + "/patients");
   revalidatePath(ROUTES.ADMIN + "/owners");
-
-  return { success: true, error: null };
+  return { success: true };
 }
 
-// ============================================================================
-// 2. TAB 1: GROOMING & BOARDING LOG ACTIONS
-// ============================================================================
-
-export async function addGroomingLog(formData: FormData): Promise<ActionResponse> {
+export async function addGroomingLog(formData: FormData): Promise<PatientActionResponse> {
   const supabase = await createClient();
-
   const petId = formData.get("petId") as string;
-  const logDate = (formData.get("logDate") as string) || new Date().toISOString().split("T")[0];
+  const logDate = formData.get("logDate") as string;
   const isGrooming = formData.get("isGrooming") === "true" || formData.get("isGrooming") === "on";
   const isBoarding = formData.get("isBoarding") === "true" || formData.get("isBoarding") === "on";
   const medicalHistory = (formData.get("medicalHistory") as string)?.trim() || null;
   const medicationsSupplements = (formData.get("medicationsSupplements") as string)?.trim() || null;
   const specialNeedsPreferences = (formData.get("specialNeedsPreferences") as string)?.trim() || null;
-  const notes = (formData.get("notes") as string)?.trim() || null;
 
-  if (!petId) return { success: false, error: "Pet ID is required." };
+  if (!petId || !logDate) {
+    return { success: false, error: "Pet ID and Log Date are required." };
+  }
 
   const { error } = await supabase.from("pet_grooming_logs").insert({
     pet_id: petId,
@@ -163,23 +130,16 @@ export async function addGroomingLog(formData: FormData): Promise<ActionResponse
     medical_history: medicalHistory,
     medications_supplements: medicationsSupplements,
     special_needs_preferences: specialNeedsPreferences,
-    notes,
   });
 
   if (error) return { success: false, error: error.message };
 
   revalidatePath(ROUTES.ADMIN + "/patients");
-  revalidatePath(ROUTES.PROFILE);
-  return { success: true, error: null };
+  return { success: true };
 }
 
-// ============================================================================
-// 3. TAB 2: VACCINATION LOG ACTIONS
-// ============================================================================
-
-export async function addVaccinationLog(formData: FormData): Promise<ActionResponse> {
+export async function addVaccinationLog(formData: FormData): Promise<PatientActionResponse> {
   const supabase = await createClient();
-
   const petId = formData.get("petId") as string;
   const dateGiven = formData.get("dateGiven") as string;
   const weightKg = formData.get("weightKg") ? parseFloat(formData.get("weightKg") as string) : null;
@@ -190,7 +150,7 @@ export async function addVaccinationLog(formData: FormData): Promise<ActionRespo
   const veterinarian = (formData.get("veterinarian") as string)?.trim();
 
   if (!petId || !dateGiven || !againstDisease || !vaccineUsed || !veterinarian) {
-    return { success: false, error: "Please fill in all required vaccination fields." };
+    return { success: false, error: "Missing required vaccination details." };
   }
 
   const { error } = await supabase.from("pet_vaccination_logs").insert({
@@ -207,17 +167,11 @@ export async function addVaccinationLog(formData: FormData): Promise<ActionRespo
   if (error) return { success: false, error: error.message };
 
   revalidatePath(ROUTES.ADMIN + "/patients");
-  revalidatePath(ROUTES.PROFILE);
-  return { success: true, error: null };
+  return { success: true };
 }
 
-// ============================================================================
-// 4. TAB 3: ECTO/ENDOPARASITE PREVENTATIVES ACTIONS
-// ============================================================================
-
-export async function addParasiteLog(formData: FormData): Promise<ActionResponse> {
+export async function addParasiteLog(formData: FormData): Promise<PatientActionResponse> {
   const supabase = await createClient();
-
   const petId = formData.get("petId") as string;
   const dateGiven = formData.get("dateGiven") as string;
   const weightKg = formData.get("weightKg") ? parseFloat(formData.get("weightKg") as string) : null;
@@ -227,7 +181,7 @@ export async function addParasiteLog(formData: FormData): Promise<ActionResponse
   const veterinarian = (formData.get("veterinarian") as string)?.trim();
 
   if (!petId || !dateGiven || !againstParasites || !preventativeUsed || !veterinarian) {
-    return { success: false, error: "Please fill in all required parasite preventative fields." };
+    return { success: false, error: "Missing required preventative details." };
   }
 
   const { error } = await supabase.from("pet_parasite_preventative_logs").insert({
@@ -243,27 +197,21 @@ export async function addParasiteLog(formData: FormData): Promise<ActionResponse
   if (error) return { success: false, error: error.message };
 
   revalidatePath(ROUTES.ADMIN + "/patients");
-  revalidatePath(ROUTES.PROFILE);
-  return { success: true, error: null };
+  return { success: true };
 }
 
-// ============================================================================
-// 5. TAB 4: VET VISIT / MEDICAL HISTORY ACTIONS
-// ============================================================================
-
-export async function addMedicalVisitLog(formData: FormData): Promise<ActionResponse> {
+export async function addMedicalVisitLog(formData: FormData): Promise<PatientActionResponse> {
   const supabase = await createClient();
-
   const petId = formData.get("petId") as string;
-  const visitDate = (formData.get("visitDate") as string) || new Date().toISOString().split("T")[0];
+  const visitDate = formData.get("visitDate") as string;
   const reasonForVisit = (formData.get("reasonForVisit") as string)?.trim();
   const clinicalFindings = (formData.get("clinicalFindings") as string)?.trim();
   const vetInstructions = (formData.get("vetInstructions") as string)?.trim();
   const followUpDate = (formData.get("followUpDate") as string)?.trim() || null;
   const veterinarian = (formData.get("veterinarian") as string)?.trim();
 
-  if (!petId || !reasonForVisit || !clinicalFindings || !vetInstructions || !veterinarian) {
-    return { success: false, error: "Please fill in all required medical visit fields." };
+  if (!petId || !visitDate || !reasonForVisit || !clinicalFindings || !vetInstructions || !veterinarian) {
+    return { success: false, error: "Missing required clinical visit details." };
   }
 
   const { error } = await supabase.from("pet_medical_visit_logs").insert({
@@ -279,13 +227,8 @@ export async function addMedicalVisitLog(formData: FormData): Promise<ActionResp
   if (error) return { success: false, error: error.message };
 
   revalidatePath(ROUTES.ADMIN + "/patients");
-  revalidatePath(ROUTES.PROFILE);
-  return { success: true, error: null };
+  return { success: true };
 }
-
-// ============================================================================
-// 6. TAB 5: DENTAL RECORDS ACTIONS
-// ============================================================================
 
 export async function addDentalLog(
   petId: string,
@@ -293,9 +236,9 @@ export async function addDentalLog(
   hasSalivation: boolean,
   hasPeriodontalDisease: boolean,
   toothConditions: Record<string, string>,
-  notes: string | null,
-  veterinarian: string | null
-): Promise<ActionResponse> {
+  notes?: string | null,
+  veterinarian?: string | null
+): Promise<PatientActionResponse> {
   const supabase = await createClient();
 
   if (!petId || !recordDate) {
@@ -308,13 +251,12 @@ export async function addDentalLog(
     has_salivation: hasSalivation,
     has_periodontal_disease: hasPeriodontalDisease,
     tooth_conditions: toothConditions,
-    notes,
-    veterinarian,
+    notes: notes || null,
+    veterinarian: veterinarian || null,
   });
 
   if (error) return { success: false, error: error.message };
 
   revalidatePath(ROUTES.ADMIN + "/patients");
-  revalidatePath(ROUTES.PROFILE);
-  return { success: true, error: null };
+  return { success: true };
 }
