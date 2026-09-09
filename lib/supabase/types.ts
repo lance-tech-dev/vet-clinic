@@ -202,8 +202,18 @@ export interface Database {
           id: string;
           owner_id: string;
           name: string;
-          species: string | null;
+          species: string;
           breed: string | null;
+          sex: string;
+          is_neutered: boolean;
+          date_of_birth: string | null;
+          microchip_no: string | null;
+          color_markings: string | null;
+          owner_name: string | null;
+          owner_address: string | null;
+          owner_phone: string | null;
+          owner_email: string | null;
+          authorized_handlers: string | null;
           age: string | null;
           notes: string | null;
           created_at: string;
@@ -213,8 +223,18 @@ export interface Database {
           id?: string;
           owner_id: string;
           name: string;
-          species?: string | null;
+          species: string;
           breed?: string | null;
+          sex?: string;
+          is_neutered?: boolean;
+          date_of_birth?: string | null;
+          microchip_no?: string | null;
+          color_markings?: string | null;
+          owner_name?: string | null;
+          owner_address?: string | null;
+          owner_phone?: string | null;
+          owner_email?: string | null;
+          authorized_handlers?: string | null;
           age?: string | null;
           notes?: string | null;
           created_at?: string;
@@ -224,8 +244,18 @@ export interface Database {
           id?: string;
           owner_id?: string;
           name?: string;
-          species?: string | null;
+          species?: string;
           breed?: string | null;
+          sex?: string;
+          is_neutered?: boolean;
+          date_of_birth?: string | null;
+          microchip_no?: string | null;
+          color_markings?: string | null;
+          owner_name?: string | null;
+          owner_address?: string | null;
+          owner_phone?: string | null;
+          owner_email?: string | null;
+          authorized_handlers?: string | null;
           age?: string | null;
           notes?: string | null;
           created_at?: string;
@@ -236,6 +266,242 @@ export interface Database {
             foreignKeyName: "pets_owner_id_fkey";
             columns: ["owner_id"];
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      pet_grooming_logs: {
+        Row: {
+          id: string;
+          pet_id: string;
+          log_date: string;
+          is_grooming: boolean;
+          is_boarding: boolean;
+          medical_history: string | null;
+          medications_supplements: string | null;
+          special_needs_preferences: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          pet_id: string;
+          log_date?: string;
+          is_grooming?: boolean;
+          is_boarding?: boolean;
+          medical_history?: string | null;
+          medications_supplements?: string | null;
+          special_needs_preferences?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          pet_id?: string;
+          log_date?: string;
+          is_grooming?: boolean;
+          is_boarding?: boolean;
+          medical_history?: string | null;
+          medications_supplements?: string | null;
+          special_needs_preferences?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pet_grooming_logs_pet_id_fkey";
+            columns: ["pet_id"];
+            referencedRelation: "pets";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      pet_vaccination_logs: {
+        Row: {
+          id: string;
+          pet_id: string;
+          date_given: string;
+          weight_kg: number | null;
+          against_disease: string;
+          vaccine_used: string;
+          lot_batch_no: string | null;
+          next_due: string | null;
+          veterinarian: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          pet_id: string;
+          date_given: string;
+          weight_kg?: number | null;
+          against_disease: string;
+          vaccine_used: string;
+          lot_batch_no?: string | null;
+          next_due?: string | null;
+          veterinarian: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          pet_id?: string;
+          date_given?: string;
+          weight_kg?: number | null;
+          against_disease?: string;
+          vaccine_used?: string;
+          lot_batch_no?: string | null;
+          next_due?: string | null;
+          veterinarian?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pet_vaccination_logs_pet_id_fkey";
+            columns: ["pet_id"];
+            referencedRelation: "pets";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      pet_parasite_preventative_logs: {
+        Row: {
+          id: string;
+          pet_id: string;
+          date_given: string;
+          weight_kg: number | null;
+          against_parasites: string;
+          preventative_used: string;
+          next_due: string | null;
+          veterinarian: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          pet_id: string;
+          date_given: string;
+          weight_kg?: number | null;
+          against_parasites: string;
+          preventative_used: string;
+          next_due?: string | null;
+          veterinarian: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          pet_id?: string;
+          date_given?: string;
+          weight_kg?: number | null;
+          against_parasites?: string;
+          preventative_used?: string;
+          next_due?: string | null;
+          veterinarian?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pet_parasite_preventative_logs_pet_id_fkey";
+            columns: ["pet_id"];
+            referencedRelation: "pets";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      pet_medical_visit_logs: {
+        Row: {
+          id: string;
+          pet_id: string;
+          visit_date: string;
+          reason_for_visit: string;
+          clinical_findings: string;
+          vet_instructions: string;
+          follow_up_date: string | null;
+          veterinarian: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          pet_id: string;
+          visit_date?: string;
+          reason_for_visit: string;
+          clinical_findings: string;
+          vet_instructions: string;
+          follow_up_date?: string | null;
+          veterinarian: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          pet_id?: string;
+          visit_date?: string;
+          reason_for_visit?: string;
+          clinical_findings?: string;
+          vet_instructions?: string;
+          follow_up_date?: string | null;
+          veterinarian?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pet_medical_visit_logs_pet_id_fkey";
+            columns: ["pet_id"];
+            referencedRelation: "pets";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      pet_dental_logs: {
+        Row: {
+          id: string;
+          pet_id: string;
+          record_date: string;
+          has_salivation: boolean;
+          has_periodontal_disease: boolean;
+          tooth_conditions: Json;
+          notes: string | null;
+          veterinarian: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          pet_id: string;
+          record_date?: string;
+          has_salivation?: boolean;
+          has_periodontal_disease?: boolean;
+          tooth_conditions?: Json;
+          notes?: string | null;
+          veterinarian?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          pet_id?: string;
+          record_date?: string;
+          has_salivation?: boolean;
+          has_periodontal_disease?: boolean;
+          tooth_conditions?: Json;
+          notes?: string | null;
+          veterinarian?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pet_dental_logs_pet_id_fkey";
+            columns: ["pet_id"];
+            referencedRelation: "pets";
             referencedColumns: ["id"];
           }
         ];

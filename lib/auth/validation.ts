@@ -3,57 +3,28 @@ import { z } from "zod";
 export const loginSchema = z.object({
   email: z
     .string()
-    .min(1, { message: "Email is required" })
-    .email({ message: "Invalid email address" }),
+    .min(1, "Email address is required.")
+    .email("Please enter a valid email address."),
   password: z
     .string()
-    .min(1, { message: "Password is required" }),
+    .min(6, "Password must be at least 6 characters."),
 });
 
-export const petInputSchema = z.object({
-  name: z
+export const registerSchema = z.object({
+  email: z
     .string()
-    .min(1, { message: "Pet name is required" }),
-  species: z
+    .min(1, "Email address is required.")
+    .email("Please enter a valid email address."),
+  password: z
     .string()
-    .default("Dog"),
-  breed: z
+    .min(6, "Password must be at least 6 characters."),
+  fullName: z
     .string()
-    .optional()
-    .or(z.literal("")),
-  age: z
+    .min(1, "Owner full name is required."),
+  phone: z
     .string()
-    .optional()
-    .or(z.literal("")),
-  notes: z
+    .min(1, "Mobile contact number is required."),
+  address: z
     .string()
-    .optional()
-    .or(z.literal("")),
+    .min(1, "Home address is required."),
 });
-
-export const registerSchema = z
-  .object({
-    fullName: z
-      .string()
-      .min(2, { message: "Full name must be at least 2 characters" }),
-    phone: z
-      .string()
-      .min(7, { message: "Please enter a valid phone number" }),
-    email: z
-      .string()
-      .min(1, { message: "Email is required" })
-      .email({ message: "Invalid email address" }),
-    password: z
-      .string()
-      .min(6, { message: "Password must be at least 6 characters" }),
-    confirmPassword: z.string(),
-    petsPayload: z.string().optional(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-export type LoginInput = z.infer<typeof loginSchema>;
-export type PetInput = z.infer<typeof petInputSchema>;
-export type RegisterInput = z.infer<typeof registerSchema>;

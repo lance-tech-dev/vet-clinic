@@ -4,16 +4,12 @@ import { useState, useActionState, useTransition, useEffect, useRef, useSyncExte
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { ROUTES } from "@/config/constants";
+import { PetDetailModal, type PetFullRecord, type MedicalLogsData } from "@/components/pets/pet-detail-modal";
 import { updateProfile, addPet, rescheduleAppointment, cancelUserAppointment, type ProfileFormState } from "./actions";
 
-export interface PetData {
-  id: string;
-  name: string;
-  species: string;
-  breed: string | null;
-  age: string | null;
-  notes: string | null;
-  created_at: string;
+export interface PetWithLogs {
+  pet: PetFullRecord;
+  logs: MedicalLogsData;
 }
 
 export interface Branch {
@@ -44,6 +40,8 @@ export interface UserProfile {
   email: string;
   fullName: string | null;
   phone: string | null;
+  address?: string | null;
+  authorizedHandlers?: string | null;
   role: string;
   createdAt: string;
   avatarUrl?: string | null;
@@ -51,7 +49,7 @@ export interface UserProfile {
 
 interface ProfileViewProps {
   user?: UserProfile | null;
-  pets?: PetData[];
+  petsWithLogs?: PetWithLogs[];
   appointments?: UserAppointment[];
   branches?: Branch[];
 }
@@ -69,13 +67,17 @@ const emptySubscribe = () => () => {};
 
 export function ProfileView({
   user,
-  pets = [],
+  petsWithLogs = [],
   appointments = [],
   branches = [],
 }: ProfileViewProps) {
   const [activeTab, setActiveTab] = useState<"pets" | "appointments">("pets");
-  const [isEditingProfileModal, setIsEditingProfileModal] = useState(false);
-  const [activeModalTab, setActiveModalTab] = useState<"personal" | "addPet">("personal");
+  
+  // Dedicated Modal States
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isAddPetOpen, setIsAddPetOpen] = useState(false);
+  
+  const [viewingPetRecord, setViewingPetRecord] = useState<PetWithLogs | null>(null);
   const [reschedulingApp, setReschedulingApp] = useState<UserAppointment | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -101,6 +103,8 @@ export function ProfileView({
     email: "",
     fullName: null,
     phone: null,
+    address: null,
+    authorizedHandlers: null,
     role: "user",
     createdAt: new Date().toISOString(),
   };
@@ -142,8 +146,8 @@ export function ProfileView({
 
   const getSpeciesIcon = (species: string) => {
     const s = species.toLowerCase();
-    if (s.includes("dog")) return "🐕";
-    if (s.includes("cat")) return "🐈";
+    if (s.includes("canine") || s.includes("dog")) return "🐕";
+    if (s.includes("feline") || s.includes("cat")) return "🐈";
     if (s.includes("bird")) return "🦜";
     if (s.includes("rabbit")) return "🐇";
     return "🐾";
@@ -153,38 +157,63 @@ export function ProfileView({
     <main className="min-h-screen bg-slate-50 py-10 sm:py-14">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
-        {/* 1. Profile Header Banner */}
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
-          {userData.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={userData.avatarUrl}
-              alt={userData.fullName || "User Avatar"}
-              className="w-20 h-20 rounded-2xl object-cover border-2 border-orange-500 shadow-sm shrink-0"
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-navy-900 to-slate-800 text-white font-extrabold text-2xl flex items-center justify-center uppercase shadow-md shrink-0 border border-slate-700">
-              {initialLetter}
-            </div>
-          )}
+        {/* 1. Profile Header Banner with Clean Button Stack */}
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6 text-center lg:text-left">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left flex-1">
+            {userData.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={userData.avatarUrl}
+                alt={userData.fullName || "User Avatar"}
+                className="w-20 h-20 rounded-2xl object-cover border-2 border-orange-500 shadow-sm shrink-0"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-navy-900 to-slate-800 text-white font-extrabold text-2xl flex items-center justify-center uppercase shadow-md shrink-0 border border-slate-700">
+                {initialLetter}
+              </div>
+            )}
 
-          <div className="space-y-1.5 flex-1">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-center sm:justify-start">
-              <h1 className="text-2xl font-bold text-navy-900">
-                {userData.fullName || "Valued Pet Owner"}
-              </h1>
-              <span className="inline-flex items-center self-center sm:self-auto px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                {userData.role === "admin" ? "Staff / Admin" : "Registered Owner"}
-              </span>
+            <div className="space-y-3 flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-center sm:justify-start">
+                <h1 className="text-2xl font-bold text-navy-900">
+                  {userData.fullName || "Valued Pet Owner"}
+                </h1>
+                <span className="inline-flex items-center self-center sm:self-auto px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  {userData.role === "admin" ? "Staff / Admin" : "Registered Owner"}
+                </span>
+              </div>
+
+              {/* Structured Contact & Address Summary */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                <div>
+                  <span className="text-slate-400 font-medium block">Email Address:</span>
+                  <span className="font-bold text-navy-900">{userData.email}</span>
+                </div>
+
+                <div>
+                  <span className="text-slate-400 font-medium block">Mobile Contact:</span>
+                  <span className="font-bold text-navy-900">{userData.phone ? `📞 ${userData.phone}` : "Not specified"}</span>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <span className="text-slate-400 font-medium block">Home Address:</span>
+                  <span className="font-bold text-navy-900">{userData.address || "Not specified"}</span>
+                </div>
+
+                {userData.authorizedHandlers && (
+                  <div className="sm:col-span-2 pt-1.5 border-t border-slate-200/60">
+                    <span className="text-slate-400 font-medium block">Authorized Pet Handlers:</span>
+                    <span className="font-bold text-orange-700">{userData.authorizedHandlers}</span>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-[11px] text-slate-400">Member since {formattedDate}</p>
             </div>
-            <p className="text-sm text-slate-500 font-medium">
-              {userData.email} {userData.phone ? `• ${userData.phone}` : ""}
-            </p>
-            <p className="text-xs text-slate-400">Member since {formattedDate}</p>
           </div>
 
-          {/* Action Buttons: Book Appointment & Edit Profile */}
-          <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
+          {/* Action Button Stack */}
+          <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto min-w-[200px]">
             <Link
               href={ROUTES.APPOINTMENTS}
               className="px-5 py-2.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-xs transition-colors text-center"
@@ -193,10 +222,17 @@ export function ProfileView({
             </Link>
             <button
               type="button"
-              onClick={() => setIsEditingProfileModal(true)}
+              onClick={() => setIsEditProfileOpen(true)}
               className="px-5 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-navy-900 font-bold text-xs border border-slate-200 transition-colors cursor-pointer text-center"
             >
-              ✏️ Edit Profile & Add Pet
+              ✏️ Edit Profile
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAddPetOpen(true)}
+              className="px-5 py-2.5 rounded-full bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer text-center"
+            >
+              🐾 Register New Pet
             </button>
           </div>
         </div>
@@ -219,7 +255,7 @@ export function ProfileView({
                 : "text-slate-600 hover:text-navy-900"
             }`}
           >
-            My Pets ({pets.length})
+            My Pets ({petsWithLogs.length})
           </button>
           <button
             role="tab"
@@ -245,25 +281,13 @@ export function ProfileView({
             aria-labelledby="tab-pets"
             className="space-y-6"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-navy-900">Your Registered Pets</h2>
-                <p className="text-xs text-slate-500">Manage your fur babies&apos; medical profiles.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveModalTab("addPet");
-                  setIsEditingProfileModal(true);
-                }}
-                className="px-4 py-2 rounded-full bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
-              >
-                + Register New Pet
-              </button>
+            <div>
+              <h2 className="text-lg font-bold text-navy-900">Your Registered Pets</h2>
+              <p className="text-xs text-slate-500">Click any pet card to review complete medical history and dental records.</p>
             </div>
 
             {/* Pets Grid */}
-            {pets.length === 0 ? (
+            {petsWithLogs.length === 0 ? (
               <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xs text-center space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl mx-auto">
                   🐾
@@ -275,35 +299,37 @@ export function ProfileView({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {pets.map((pet) => (
+                {petsWithLogs.map(({ pet, logs }) => (
                   <div
                     key={pet.id}
-                    className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4 hover:shadow-md transition-shadow"
+                    onClick={() => setViewingPetRecord({ pet, logs })}
+                    className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4 hover:shadow-md transition-all cursor-pointer group"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-700 font-bold flex items-center justify-center text-2xl">
+                        <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-700 font-bold flex items-center justify-center text-2xl group-hover:scale-105 transition-transform">
                           {getSpeciesIcon(pet.species)}
                         </div>
                         <div>
-                          <h3 className="text-base font-bold text-navy-900">{pet.name}</h3>
+                          <h3 className="text-base font-bold text-navy-900 group-hover:text-orange-600 transition-colors">
+                            {pet.name}
+                          </h3>
                           <p className="text-xs text-slate-500">
-                            {pet.breed || pet.species} {pet.age ? `• ${pet.age}` : ""}
+                            {pet.breed || pet.species} • {pet.sex || "Male"} {pet.is_neutered ? "(Neutered/Spayed)" : "(Intact)"}
                           </p>
                         </div>
                       </div>
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-100">
-                        {pet.species}
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-100">
+                        View Records ➔
                       </span>
                     </div>
 
-                    {pet.notes && (
-                      <div className="p-3 bg-slate-50 rounded-2xl text-xs space-y-1 text-slate-600">
-                        <p>
-                          <span className="font-semibold text-slate-800">Medical Notes:</span> {pet.notes}
-                        </p>
-                      </div>
-                    )}
+                    <div className="bg-slate-50 p-3.5 rounded-2xl text-xs space-y-1.5 text-slate-600 border border-slate-100">
+                      <p><span className="font-semibold text-slate-800">Date of Birth:</span> {pet.date_of_birth || "N/A"}</p>
+                      <p><span className="font-semibold text-slate-800">Color / Markings:</span> {pet.color_markings || "N/A"}</p>
+                      {pet.microchip_no && <p><span className="font-semibold text-slate-800">Microchip #:</span> {pet.microchip_no}</p>}
+                      {pet.authorized_handlers && <p><span className="font-semibold text-slate-800">Authorized Handlers:</span> {pet.authorized_handlers}</p>}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -362,7 +388,6 @@ export function ProfileView({
                       className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
                     >
                       <div className="space-y-3 flex-1">
-                        {/* Status Badge & Branch Name */}
                         <div className="flex items-center gap-2.5 flex-wrap">
                           <span
                             className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-bold border ${
@@ -383,7 +408,6 @@ export function ProfileView({
                           </span>
                         </div>
 
-                        {/* Visit Details */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs text-slate-700">
                           <div>
                             <span className="text-slate-400 font-medium block">Scheduled Date & Time:</span>
@@ -403,7 +427,6 @@ export function ProfileView({
                           </div>
                         </div>
 
-                        {/* Emergency Reschedule Reason if present */}
                         {app.reschedule_reason && (
                           <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-xs text-amber-900 space-y-0.5">
                             <span className="font-bold block">⚠️ Emergency Reschedule Reason Recorded:</span>
@@ -412,7 +435,6 @@ export function ProfileView({
                         )}
                       </div>
 
-                      {/* Action Buttons */}
                       {app.status === "scheduled" && (
                         <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 shrink-0">
                           <button
@@ -442,29 +464,40 @@ export function ProfileView({
 
       </div>
 
-      {/* 3. EDIT PROFILE & ADD PET MODAL (Portal) */}
-      {isEditingProfileModal && isMounted && createPortal(
+      {/* 3. READ-ONLY PET MEDICAL HISTORY MODAL FOR OWNER */}
+      {viewingPetRecord && (
+        <PetDetailModal
+          isOpen={Boolean(viewingPetRecord)}
+          onClose={() => setViewingPetRecord(null)}
+          pet={viewingPetRecord.pet}
+          logs={viewingPetRecord.logs}
+          isStaffOrAdmin={false}
+        />
+      )}
+
+      {/* 4. DEDICATED MODAL 1: EDIT OWNER PROFILE ONLY */}
+      {isEditProfileOpen && isMounted && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="edit-profile-modal-title"
           className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-navy-950/70 backdrop-blur-xs animate-in fade-in duration-200"
         >
-          <div className="fixed inset-0" onClick={() => setIsEditingProfileModal(false)} aria-hidden="true" />
+          <div className="fixed inset-0" onClick={() => setIsEditProfileOpen(false)} aria-hidden="true" />
 
           <div className="relative z-10 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto space-y-5 my-auto animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h2 id="edit-profile-modal-title" className="text-lg font-bold text-navy-900">
-                  Update Account & Registered Pets
+                  Edit Owner Details
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Change your personal details or register a new pet.
+                  Update your personal contact information and authorized handlers.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setIsEditingProfileModal(false)}
+                onClick={() => setIsEditProfileOpen(false)}
                 className="text-slate-400 hover:text-navy-900 p-1.5 rounded-lg text-sm transition-colors cursor-pointer"
                 aria-label="Close modal"
               >
@@ -472,60 +505,33 @@ export function ProfileView({
               </button>
             </div>
 
-            {/* Modal Internal Navigation Sub-tabs */}
-            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit">
-              <button
-                type="button"
-                onClick={() => setActiveModalTab("personal")}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  activeModalTab === "personal"
-                    ? "bg-white text-navy-900 shadow-2xs"
-                    : "text-slate-600 hover:text-navy-900"
-                }`}
-              >
-                Personal Info
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveModalTab("addPet")}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  activeModalTab === "addPet"
-                    ? "bg-white text-navy-900 shadow-2xs"
-                    : "text-slate-600 hover:text-navy-900"
-                }`}
-              >
-                + Register New Pet
-              </button>
-            </div>
-
-            {/* MODAL FORM 1: Personal Information */}
-            {activeModalTab === "personal" && (
-              <form ref={profileFormRef} action={profileAction} className="space-y-4">
-                {profileState?.success && (
-                  <div role="status" className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
-                    ✓ Personal information updated successfully!
-                  </div>
-                )}
-
-                {profileState?.error && (
-                  <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
-                    ⚠️ {profileState.error}
-                  </div>
-                )}
-
-                <div>
-                  <label htmlFor="modal-email" className="block text-xs font-semibold text-slate-700 mb-1">
-                    Email Address
-                  </label>
-                  <input
-                    id="modal-email"
-                    type="email"
-                    disabled
-                    value={userData.email}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-xs cursor-not-allowed"
-                  />
+            <form ref={profileFormRef} action={profileAction} className="space-y-4">
+              {profileState?.success && (
+                <div role="status" className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+                  ✓ Personal information updated successfully!
                 </div>
+              )}
 
+              {profileState?.error && (
+                <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
+                  ⚠️ {profileState.error}
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="modal-email" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Email Address
+                </label>
+                <input
+                  id="modal-email"
+                  type="email"
+                  disabled
+                  value={userData.email}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-xs cursor-not-allowed"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="modal-fullname" className="block text-xs font-semibold text-slate-700 mb-1">
                     Full Name *
@@ -543,7 +549,7 @@ export function ProfileView({
 
                 <div>
                   <label htmlFor="modal-phone" className="block text-xs font-semibold text-slate-700 mb-1">
-                    Phone / Mobile Number
+                    Phone / Mobile Number *
                   </label>
                   <input
                     id="modal-phone"
@@ -551,163 +557,134 @@ export function ProfileView({
                     name="phone"
                     defaultValue={userData.phone || ""}
                     placeholder="e.g. 09171234567"
+                    required
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
+              </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingProfileModal(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isProfilePending}
-                    className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {isProfilePending ? "Saving..." : "Save Personal Info"}
-                  </button>
-                </div>
-              </form>
-            )}
+              <div>
+                <label htmlFor="modal-address" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Home Address *
+                </label>
+                <input
+                  id="modal-address"
+                  type="text"
+                  name="address"
+                  defaultValue={userData.address || ""}
+                  placeholder="e.g. Brgy. San Rafael, San Pablo City"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
 
-            {/* MODAL FORM 2: Add New Pet */}
-            {activeModalTab === "addPet" && (
-              <form ref={petFormRef} action={petAction} className="space-y-4">
-                {petState?.success && (
-                  <div role="status" className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
-                    ✓ Pet registered successfully!
-                  </div>
-                )}
+              {/* Structured Authorized Pet Handler Inputs */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-navy-800 block">
+                  Authorized Pet Handler Details *
+                </span>
 
-                {petState?.error && (
-                  <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
-                    ⚠️ {petState.error}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label htmlFor="modal-pet-name" className="block text-xs font-semibold text-slate-700 mb-1">
-                      Pet Name *
+                    <label htmlFor="modal-handler-name" className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Name *
                     </label>
                     <input
-                      id="modal-pet-name"
+                      id="modal-handler-name"
                       type="text"
-                      name="name"
+                      name="handlerName"
                       required
-                      placeholder="e.g. Buddy"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      defaultValue={userData.authorizedHandlers ? userData.authorizedHandlers.split(" (")[0] : ""}
+                      placeholder="e.g. Juan Santos"
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
+
                   <div>
-                    <label htmlFor="modal-pet-species" className="block text-xs font-semibold text-slate-700 mb-1">
-                      Species *
+                    <label htmlFor="modal-handler-rel" className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Relationship *
                     </label>
-                    <select
-                      id="modal-pet-species"
-                      name="species"
+                    <input
+                      id="modal-handler-rel"
+                      type="text"
+                      name="handlerRelationship"
                       required
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
-                    >
-                      <option value="Dog">Dog</option>
-                      <option value="Cat">Cat</option>
-                      <option value="Bird">Bird</option>
-                      <option value="Rabbit">Rabbit</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="modal-pet-breed" className="block text-xs font-semibold text-slate-700 mb-1">
-                      Breed
-                    </label>
-                    <input
-                      id="modal-pet-breed"
-                      type="text"
-                      name="breed"
-                      placeholder="e.g. Golden Retriever"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      defaultValue={
+                        userData.authorizedHandlers && userData.authorizedHandlers.includes("(")
+                          ? userData.authorizedHandlers.split("(")[1]?.split(")")[0]
+                          : ""
+                      }
+                      placeholder="e.g. Husband / Sister"
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
+
                   <div>
-                    <label htmlFor="modal-pet-age" className="block text-xs font-semibold text-slate-700 mb-1">
-                      Age / Birthday
+                    <label htmlFor="modal-handler-phone" className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Contact Number *
                     </label>
                     <input
-                      id="modal-pet-age"
-                      type="text"
-                      name="age"
-                      placeholder="e.g. 2 years old"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      id="modal-handler-phone"
+                      type="tel"
+                      name="handlerPhone"
+                      required
+                      defaultValue={
+                        userData.authorizedHandlers && userData.authorizedHandlers.includes(" - ")
+                          ? userData.authorizedHandlers.split(" - ")[1]
+                          : ""
+                      }
+                      placeholder="e.g. 09181234567"
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  <label htmlFor="modal-pet-notes" className="block text-xs font-semibold text-slate-700 mb-1">
-                    Medical Notes / Allergies
-                  </label>
-                  <textarea
-                    id="modal-pet-notes"
-                    name="notes"
-                    rows={2}
-                    placeholder="e.g. Allergic to chicken, sensitive stomach..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingProfileModal(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isPetPending}
-                    className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {isPetPending ? "Registering..." : "Save Pet Profile"}
-                  </button>
-                </div>
-              </form>
-            )}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProfilePending}
+                  className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isProfilePending ? "Saving..." : "Save Personal Info"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>,
         document.body
       )}
 
-      {/* 4. Emergency Reschedule Modal Portal */}
-      {reschedulingApp && isMounted && createPortal(
+      {/* 5. DEDICATED MODAL 2: REGISTER NEW PET ONLY */}
+      {isAddPetOpen && isMounted && createPortal(
         <div
           role="dialog"
           aria-modal="true"
-          aria-labelledby="reschedule-modal-title"
+          aria-labelledby="add-pet-modal-title"
           className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-navy-950/70 backdrop-blur-xs animate-in fade-in duration-200"
         >
-          <div className="fixed inset-0" onClick={() => setReschedulingApp(null)} aria-hidden="true" />
+          <div className="fixed inset-0" onClick={() => setIsAddPetOpen(false)} aria-hidden="true" />
 
-          <div className="relative z-10 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-5 my-auto animate-in zoom-in-95 duration-200">
+          <div className="relative z-10 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto space-y-5 my-auto animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h2 id="reschedule-modal-title" className="text-lg font-bold text-navy-900">
-                  Emergency Reschedule
+                <h2 id="add-pet-modal-title" className="text-lg font-bold text-navy-900">
+                  Register New Pet Patient
                 </h2>
-                <p className="text-xs text-orange-600 font-bold mt-0.5">
-                  Patient: {reschedulingApp.pet_name} ({reschedulingApp.service_name})
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Complete clinical details for your new fur baby.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setReschedulingApp(null)}
+                onClick={() => setIsAddPetOpen(false)}
                 className="text-slate-400 hover:text-navy-900 p-1.5 rounded-lg text-sm transition-colors cursor-pointer"
                 aria-label="Close modal"
               >
@@ -715,76 +692,140 @@ export function ProfileView({
               </button>
             </div>
 
-            {rescheduleState?.error && (
-              <div role="alert" className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
-                ⚠️ {rescheduleState.error}
-              </div>
-            )}
+            <form ref={petFormRef} action={petAction} className="space-y-4">
+              {petState?.success && (
+                <div role="status" className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+                  ✓ Pet registered successfully!
+                </div>
+              )}
 
-            <form ref={rescheduleFormRef} action={rescheduleAction} className="space-y-4">
-              <input type="hidden" name="appointmentId" value={reschedulingApp.id} />
+              {petState?.error && (
+                <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
+                  ⚠️ {petState.error}
+                </div>
+              )}
 
-              <div>
-                <label htmlFor="newDate" className="block text-xs font-semibold text-slate-700 mb-1">
-                  New Preferred Date *
-                </label>
-                <input
-                  id="newDate"
-                  type="date"
-                  name="newDate"
-                  required
-                  defaultValue={reschedulingApp.appointment_date}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
+              {/* Hidden Owner Data to bind with pet record */}
+              <input type="hidden" name="ownerName" value={userData.fullName || ""} />
+              <input type="hidden" name="ownerPhone" value={userData.phone || ""} />
+              <input type="hidden" name="ownerEmail" value={userData.email || ""} />
+              <input type="hidden" name="ownerAddress" value={userData.address || ""} />
+              <input type="hidden" name="authorizedHandlers" value={userData.authorizedHandlers || ""} />
 
-              <div>
-                <label htmlFor="newTimeSlot" className="block text-xs font-semibold text-slate-700 mb-1">
-                  New Preferred Time Slot *
-                </label>
-                <select
-                  id="newTimeSlot"
-                  name="newTimeSlot"
-                  required
-                  defaultValue={reschedulingApp.time_slot}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
-                >
-                  {TIME_SLOTS.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <div className="space-y-3">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200 block w-fit">
+                  Pet Patient Information
+                </span>
 
-              <div>
-                <label htmlFor="reason" className="block text-xs font-bold text-navy-900 mb-1">
-                  Reason for Rescheduling / Emergency *
-                </label>
-                <textarea
-                  id="reason"
-                  name="reason"
-                  required
-                  rows={3}
-                  placeholder="e.g. Medical emergency, sudden work conflict, or pet symptom change..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Pet Name *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      required
+                      placeholder="e.g. Buddy"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Species * (Canine / Feline)</label>
+                    <input
+                      type="text"
+                      name="species"
+                      required
+                      defaultValue="Canine"
+                      placeholder="e.g. Canine or Feline"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Breed (Optional)</label>
+                    <input
+                      type="text"
+                      name="breed"
+                      placeholder="e.g. Golden Retriever"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Sex *</label>
+                    <select
+                      name="sex"
+                      required
+                      defaultValue="Male"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500 cursor-pointer"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+
+                  <div className="pt-4">
+                    <label className="flex items-center gap-2 text-xs font-bold text-navy-900 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="isNeutered"
+                        className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
+                      />
+                      <span>Neutered / Spayed</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Date of Birth *</label>
+                    <input
+                      type="date"
+                      name="dateOfBirth"
+                      required
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Microchip No. (Optional)</label>
+                    <input
+                      type="text"
+                      name="microchipNo"
+                      placeholder="e.g. 985141002345678"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Color / Markings & Identification *</label>
+                  <input
+                    type="text"
+                    name="colorMarkings"
+                    required
+                    placeholder="e.g. Tan coat with white spot on chest"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setReschedulingApp(null)}
+                  onClick={() => setIsAddPetOpen(false)}
                   className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
                 >
-                  Cancel
+                  Close
                 </button>
                 <button
                   type="submit"
-                  disabled={isReschedulePending}
+                  disabled={isPetPending}
                   className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isReschedulePending ? "Updating..." : "Confirm Emergency Reschedule"}
+                  {isPetPending ? "Registering..." : "Save Pet Profile"}
                 </button>
               </div>
             </form>
