@@ -1,41 +1,25 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Navbar } from "@/components/navbar";
-import { getAuthSession } from "@/lib/auth/session";
-import type { NavAuthState } from "@/lib/auth/types";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { Navbar } from "@/components/navbar/navbar";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Vet",
-  description: "Veterinary Clinic",
+  title: "VetClinic - FurBabies & Friends",
+  description: "Comprehensive veterinary care and pet management system.",
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const session = await getAuthSession();
-  const authState: NavAuthState = {
-    isAuthenticated: session.isAuthenticated,
-    displayName: session.profile?.full_name || session.user?.email || null,
-    isAdmin: session.isAdmin,
-  };
-
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-screen flex flex-col bg-background text-foreground">
-        <Navbar authState={authState} />
-        {children}
+    <html lang="en" className="h-full scroll-smooth">
+      <body className={`${inter.className} antialiased min-h-full bg-slate-50 text-navy-900 flex flex-col pt-18`}>
+        <Navbar />
+        <div className="flex-1">{children}</div>
       </body>
     </html>
   );

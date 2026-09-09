@@ -2,37 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NavItem } from "./types";
+import { NAV_LINKS } from "./nav-data";
 
-interface DesktopNavProps {
-  items: NavItem[];
-}
-
-export function DesktopNav({ items }: DesktopNavProps) {
+export function DesktopNav() {
   const pathname = usePathname();
 
   return (
-    <nav
-      className="hidden lg:flex items-center gap-1 bg-slate-100/80 p-1.5 rounded-full border border-slate-200/60 shadow-inner/5"
-      aria-label="Main Navigation"
-    >
-      {items.map((item) => {
+    <nav className="hidden lg:flex items-center gap-1 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60">
+      {NAV_LINKS.map((link) => {
         const isActive =
-          item.href === "/"
+          link.href === "/"
             ? pathname === "/"
-            : pathname.startsWith(item.href);
+            : pathname.startsWith(link.href);
 
         return (
           <Link
-            key={item.href}
-            href={item.href}
-            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900 ${
+            key={link.href}
+            href={link.href}
+            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all duration-200 ${
               isActive
-                ? "bg-navy-900 text-white shadow-xs"
-                : "text-slate-600 hover:text-navy-900 hover:bg-white/80"
+                ? "bg-white text-orange-600 shadow-2xs font-extrabold"
+                : "text-slate-600 hover:text-navy-900 hover:bg-white/60"
             }`}
           >
-            {item.label}
+            {link.label}
           </Link>
         );
       })}
