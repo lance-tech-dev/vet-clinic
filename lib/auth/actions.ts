@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { registerSchema, loginSchema } from "./validation";
 import { ROUTES } from "@/config/constants";
+import { isAdmin } from "@/lib/auth/roles";
 
 export interface AuthActionResult {
   error: string | null;
@@ -24,7 +25,7 @@ export interface RegistrationPetItem {
 }
 
 /**
- * Sign In / Login Server Action
+ * Sign In / Login Server Action with Automatic Role-Based Redirect
  */
 export async function signIn(
   prevState: AuthActionResult,
@@ -43,7 +44,7 @@ export async function signIn(
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -52,8 +53,22 @@ export async function signIn(
     return { error: error.message, success: false };
   }
 
-  revalidatePath(ROUTES.HOME, "layout");
-  return { error: null, success: true };
+  if (data.user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .single();
+
+    revalidatePath("/", "layout");
+
+    if (isAdmin(profile?.role)) {
+      redirect(ROUTES.ADMIN);
+    }
+  }
+
+  revalidatePath("/", "layout");
+  redirect(ROUTES.HOME);
 }
 
 /**

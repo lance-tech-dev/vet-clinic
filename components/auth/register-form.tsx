@@ -1,524 +1,578 @@
 "use client";
 
-import { useState, useActionState, useEffect, useRef } from "react";
+import { useState, useActionState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { signUp, type AuthActionResult } from "@/lib/auth/actions";
 import { PasswordInput } from "@/components/auth/password-input";
-import { signUp, type AuthActionResult, type RegistrationPetItem } from "@/lib/auth/actions";
 import { ROUTES } from "@/config/constants";
 
 const initialState: AuthActionResult = {
   error: null,
+  errorStep: undefined,
   success: false,
 };
 
-const createEmptyPet = (): RegistrationPetItem => ({
-  name: "",
-  species: "Canine",
-  breed: "",
-  sex: "Male",
-  isNeutered: false,
-  dateOfBirth: "",
-  microchipNo: "",
-  colorMarkings: "",
-});
-
 export function RegisterForm() {
-  const router = useRouter();
+  const [step, setStep] = useState<1 | 2>(1);
   const [state, formAction, isPending] = useActionState(signUp, initialState);
-  const [currentPage, setCurrentPage] = useState<1 | 2>(1);
-  const [hasPet, setHasPet] = useState(true);
-  const [petsList, setPetsList] = useState<RegistrationPetItem[]>([createEmptyPet()]);
-  const [clientError, setClientError] = useState<string | null>(null);
-  const [prevError, setPrevError] = useState<string | null>(null);
 
-  const formRef = useRef<HTMLFormElement>(null);
+  // Pet 1 State
+  const [petData, setPetData] = useState({
+    name: "",
+    species: "Canine",
+    breed: "",
+    sex: "Male",
+    isNeutered: false,
+    dateOfBirth: "",
+    microchipNo: "",
+    colorMarkings: "",
+  });
 
-  // Sync error step safely during render (prevents react-hooks/set-state-in-effect error)
-  if (state.error && state.error !== prevError) {
-    setPrevError(state.error);
-    if (state.errorStep && currentPage !== state.errorStep) {
-      setCurrentPage(state.errorStep);
-    }
+  // Custom DOB Calendar State (No native browser elements)
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarViewMode, setCalendarViewMode] = useState<"days" | "years">("days");
+  const [calendarViewDate, setCalendarViewDate] = useState(() => new Date());
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Render-phase state adjustment for errorStep
+  const [prevErrorStep, setPrevErrorStep] = useState<1 | 2 | undefined>(undefined);
+  if (state?.errorStep && state.errorStep !== prevErrorStep) {
+    setPrevErrorStep(state.errorStep as 1 | 2);
+    setStep(state.errorStep as 1 | 2);
   }
 
-  // Redirect to Landing Page upon successful registration
+  // Close calendar popover on outside click
   useEffect(() => {
-    if (state.success) {
-      router.push(ROUTES.HOME);
-      router.refresh();
-    }
-  }, [state.success, router]);
-
-  // Multi-Pet Handlers
-  const handleAddPet = () => {
-    setPetsList((prev) => [...prev, createEmptyPet()]);
-  };
-
-  const handleRemovePet = (index: number) => {
-    if (petsList.length <= 1) return;
-    setPetsList((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handlePetChange = (
-    index: number,
-    field: keyof RegistrationPetItem,
-    value: string | boolean
-  ) => {
-    setPetsList((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  };
-
-  const handleNextPage = () => {
-    setClientError(null);
-    if (!formRef.current) return;
-
-    const formData = new FormData(formRef.current);
-    const email = (formData.get("email") as string)?.trim();
-    const password = (formData.get("password") as string)?.trim();
-    const fullName = (formData.get("fullName") as string)?.trim();
-    const phone = (formData.get("phone") as string)?.trim();
-    const address = (formData.get("address") as string)?.trim();
-    const handlerName = (formData.get("handlerName") as string)?.trim();
-
-    if (!email || !password || !fullName || !phone || !address) {
-      setClientError("Please fill in all required owner fields on Page 1 before proceeding.");
-      setCurrentPage(1);
-      return;
-    }
-
-    if (!handlerName) {
-      setClientError("Please enter the name of at least one authorized pet handler.");
-      setCurrentPage(1);
-      return;
-    }
-
-    setCurrentPage(2);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleSubmitClientCheck = (e: React.FormEvent<HTMLFormElement>) => {
-    setClientError(null);
-
-    if (currentPage === 1) {
-      e.preventDefault();
-      handleNextPage();
-      return;
-    }
-
-    if (hasPet) {
-      for (let i = 0; i < petsList.length; i++) {
-        const p = petsList[i];
-        if (!p.name?.trim()) {
-          e.preventDefault();
-          setClientError(`Page 2 Error: Please enter a name for Pet Patient #${i + 1}.`);
-          setCurrentPage(2);
-          return;
-        }
-        if (!p.species?.trim()) {
-          e.preventDefault();
-          setClientError(`Page 2 Error: Please enter species for Pet Patient #${i + 1}.`);
-          setCurrentPage(2);
-          return;
-        }
-        if (!p.dateOfBirth?.trim()) {
-          e.preventDefault();
-          setClientError(`Page 2 Error: Please select Date of Birth for Pet Patient #${i + 1}.`);
-          setCurrentPage(2);
-          return;
-        }
-        if (!p.colorMarkings?.trim()) {
-          e.preventDefault();
-          setClientError(`Page 2 Error: Please describe Color/Markings for Pet Patient #${i + 1}.`);
-          setCurrentPage(2);
-          return;
-        }
+    function handleClickOutside(event: MouseEvent) {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setIsCalendarOpen(false);
+        setCalendarViewMode("days");
       }
     }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSpeciesSelect = (species: string) => {
+    setPetData((prev) => ({ ...prev, species }));
   };
 
-  return (
-    <form ref={formRef} action={formAction} onSubmit={handleSubmitClientCheck} className="space-y-6">
-      <input type="hidden" name="petsJson" value={JSON.stringify(petsList)} />
+  // Calendar calculations
+  const viewYear = calendarViewDate.getFullYear();
+  const viewMonth = calendarViewDate.getMonth();
 
-      {/* Step Indicator Header */}
-      <div className="flex items-center justify-between bg-slate-100 p-2.5 rounded-2xl border border-slate-200">
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
+
+  const handlePrevMonth = () => {
+    setCalendarViewDate(new Date(viewYear, viewMonth - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCalendarViewDate(new Date(viewYear, viewMonth + 1, 1));
+  };
+
+  const handleYearSelect = (year: number) => {
+    setCalendarViewDate(new Date(year, viewMonth, 1));
+    setCalendarViewMode("days");
+  };
+
+  const handleSelectDay = (day: number) => {
+    const formattedMonth = String(viewMonth + 1).padStart(2, "0");
+    const formattedDay = String(day).padStart(2, "0");
+    const dobString = `${viewYear}-${formattedMonth}-${formattedDay}`;
+
+    setPetData((prev) => ({ ...prev, dateOfBirth: dobString }));
+    setIsCalendarOpen(false);
+    setCalendarViewMode("days");
+  };
+
+  // Custom Year selection range (Current year back 25 years)
+  const currentActualYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 26 }, (_, i) => currentActualYear - i);
+
+  return (
+    <div className="space-y-6">
+      {/* Header Title */}
+      <div className="text-center space-y-2">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200/80 text-orange-700 text-[11px] font-extrabold uppercase tracking-wider">
+          <span>🐾</span>
+          <span>New Client Registration</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-navy-900 tracking-tight">
+          Create Your Pet Parent Account
+        </h1>
+        <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
+          Register your owner details and add your first fur baby profile seamlessly.
+        </p>
+      </div>
+
+      {/* Interactive Step Indicator */}
+      <div className="bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80 grid grid-cols-2 gap-1.5">
         <button
           type="button"
-          onClick={() => setCurrentPage(1)}
-          className="flex items-center gap-2 text-left cursor-pointer"
+          onClick={() => setStep(1)}
+          className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            step === 1
+              ? "bg-white text-orange-600 shadow-2xs border border-slate-200/60"
+              : "text-slate-500 hover:text-navy-900"
+          }`}
         >
-          <span
-            className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-              currentPage === 1 ? "bg-orange-500 text-white" : "bg-emerald-500 text-white"
-            }`}
-          >
-            {currentPage === 1 ? "1" : "✓"}
+          <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-[11px] flex items-center justify-center shrink-0">
+            1
           </span>
-          <span className="text-xs font-bold text-navy-900">
-            {currentPage === 1 ? "Page 1: Owner Profile" : "Page 1 Completed"}
-          </span>
+          <span className="truncate">Step 1: Owner Profile</span>
         </button>
 
-        <div className="h-0.5 w-8 bg-slate-300" />
-
         <button
           type="button"
-          onClick={handleNextPage}
-          className="flex items-center gap-2 text-left cursor-pointer"
+          onClick={() => setStep(2)}
+          className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            step === 2
+              ? "bg-white text-orange-600 shadow-2xs border border-slate-200/60"
+              : "text-slate-500 hover:text-navy-900"
+          }`}
         >
-          <span
-            className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-              currentPage === 2 ? "bg-orange-500 text-white" : "bg-slate-300 text-slate-600"
-            }`}
-          >
+          <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-[11px] flex items-center justify-center shrink-0">
             2
           </span>
-          <span className="text-xs font-bold text-navy-900">
-            Page 2: Pet Information ({hasPet ? petsList.length : 0})
-          </span>
+          <span className="truncate">Step 2: Pet Profile</span>
         </button>
       </div>
 
-      {(clientError || state.error) && (
-        <div role="alert" className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2">
-            <span>⚠️</span>
-            <span>{clientError || state.error}</span>
-          </div>
-          {(state.errorStep || (clientError && clientError.includes("Page 1"))) && (
-            <button
-              type="button"
-              onClick={() => setCurrentPage(state.errorStep || 1)}
-              className="text-[11px] font-extrabold underline text-red-900 shrink-0 cursor-pointer"
-            >
-              Fix on Page {state.errorStep || 1} ➔
-            </button>
-          )}
+      {/* Error Alert Banner */}
+      {state?.error && (
+        <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-start gap-2.5 animate-in fade-in duration-200">
+          <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{state.error}</span>
         </div>
       )}
 
-      {/* PAGE 1: Owner Profile & Credentials */}
-      <div className={currentPage === 1 ? "space-y-4" : "hidden"}>
-        <span className="text-xs font-extrabold uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200 block w-fit">
-          Page 1 — Owner Information & Credentials
-        </span>
+      {/* Form Body */}
+      <form action={formAction} className="space-y-6">
+        {/* Hidden inputs required by the server action */}
+        <input type="hidden" name="hasPet" value="true" />
+        <input type="hidden" name="petsJson" value={JSON.stringify([petData])} />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="reg-email" className="block text-xs font-bold text-slate-700 mb-1">
-              Email Address *
-            </label>
-            <input
-              id="reg-email"
-              type="email"
-              name="email"
-              required={currentPage === 1}
-              placeholder="you@example.com"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
-            />
+        {/* ================= STEP 1: OWNER PROFILE & CREDENTIALS ================= */}
+        <div className={step === 1 ? "space-y-4" : "hidden"}>
+          <div className="flex items-center gap-2 text-xs font-extrabold text-navy-900 border-b border-slate-100 pb-2">
+            <span>👤</span>
+            <span>Owner Account Credentials</span>
           </div>
 
-          <div>
-            <label htmlFor="reg-password" className="block text-xs font-bold text-slate-700 mb-1">
-              Password *
-            </label>
-            <PasswordInput id="reg-password" name="password" required={currentPage === 1} placeholder="••••••••" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="reg-fullname" className="block text-xs font-bold text-slate-700 mb-1">
-              Owner Full Name *
-            </label>
-            <input
-              id="reg-fullname"
-              type="text"
-              name="fullName"
-              required={currentPage === 1}
-              placeholder="e.g. Maria Santos"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="reg-phone" className="block text-xs font-bold text-slate-700 mb-1">
-              Mobile Contact Number *
-            </label>
-            <input
-              id="reg-phone"
-              type="tel"
-              name="phone"
-              required={currentPage === 1}
-              placeholder="e.g. 09171234567"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="reg-address" className="block text-xs font-bold text-slate-700 mb-1">
-            Home Address *
-          </label>
-          <input
-            id="reg-address"
-            type="text"
-            name="address"
-            required={currentPage === 1}
-            placeholder="e.g. Brgy. San Rafael, San Pablo City"
-            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
-          />
-        </div>
-
-        {/* Structured Authorized Pet Handler Section */}
-        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-navy-800 block">
-            Authorized Pet Handler Details *
-          </span>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label htmlFor="handler-name" className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Name *
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label htmlFor="email" className="block text-xs font-bold text-slate-700">
+                Email Address *
               </label>
               <input
-                id="handler-name"
-                type="text"
-                name="handlerName"
-                required={currentPage === 1}
-                placeholder="e.g. Juan Santos"
-                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
+                id="email"
+                name="email"
+                type="email"
+                required
+                placeholder="you@example.com"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-navy-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
               />
             </div>
 
-            <div>
-              <label htmlFor="handler-rel" className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Relationship *
+            <div className="space-y-1">
+              <label htmlFor="password" className="block text-xs font-bold text-slate-700">
+                Account Password *
+              </label>
+              <PasswordInput
+                id="password"
+                name="password"
+                required
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label htmlFor="fullName" className="block text-xs font-bold text-slate-700">
+                Full Name *
               </label>
               <input
-                id="handler-rel"
+                id="fullName"
+                name="fullName"
                 type="text"
-                name="handlerRelationship"
-                required={currentPage === 1}
-                placeholder="e.g. Husband / Sister"
-                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
+                required
+                placeholder="e.g. Maria Santos"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-navy-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
               />
             </div>
 
-            <div>
-              <label htmlFor="handler-phone" className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Contact Number *
+            <div className="space-y-1">
+              <label htmlFor="phone" className="block text-xs font-bold text-slate-700">
+                Mobile Contact Number *
               </label>
               <input
-                id="handler-phone"
+                id="phone"
+                name="phone"
                 type="tel"
-                name="handlerPhone"
-                required={currentPage === 1}
-                placeholder="e.g. 09181234567"
-                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
+                required
+                placeholder="e.g. 09171234567"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-navy-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
               />
             </div>
           </div>
-        </div>
 
-        <button
-          type="button"
-          onClick={handleNextPage}
-          className="w-full py-3.5 px-4 rounded-xl bg-navy-900 hover:bg-orange-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
-        >
-          <span>Next: Pet Information</span>
-          <span>➔</span>
-        </button>
-      </div>
-
-      {/* PAGE 2: Multi-Pet Information */}
-      <div className={currentPage === 2 ? "space-y-4" : "hidden"}>
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200">
-            Page 2 — Register Pet Patients
-          </span>
-
-          <label className="flex items-center gap-2 text-xs font-bold text-orange-600 cursor-pointer">
+          <div className="space-y-1">
+            <label htmlFor="address" className="block text-xs font-bold text-slate-700">
+              Home Address *
+            </label>
             <input
-              type="checkbox"
-              name="hasPet"
-              value="true"
-              checked={hasPet}
-              onChange={(e) => setHasPet(e.target.checked)}
-              className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
+              id="address"
+              name="address"
+              type="text"
+              required
+              placeholder="e.g. Brgy. San Rafael, San Pablo City, Laguna"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-navy-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
             />
-            <span>Register Pet(s) Now</span>
-          </label>
-        </div>
-
-        {hasPet ? (
-          <div className="space-y-5">
-            {petsList.map((pet, index) => (
-              <div key={index} className="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-200 relative">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <span className="text-xs font-bold text-navy-900 flex items-center gap-1.5">
-                    <span>🐾</span>
-                    <span>Pet Patient #{index + 1}</span>
-                  </span>
-
-                  {petsList.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePet(index)}
-                      className="text-[11px] font-bold text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors cursor-pointer"
-                    >
-                      ✕ Remove Pet
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Pet Name *</label>
-                    <input
-                      type="text"
-                      required={hasPet}
-                      value={pet.name}
-                      onChange={(e) => handlePetChange(index, "name", e.target.value)}
-                      placeholder="e.g. Buddy / Maru"
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Species * (Canine / Feline)</label>
-                    <input
-                      type="text"
-                      required={hasPet}
-                      value={pet.species}
-                      onChange={(e) => handlePetChange(index, "species", e.target.value)}
-                      placeholder="Canine or Feline"
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Breed (Optional)</label>
-                    <input
-                      type="text"
-                      value={pet.breed || ""}
-                      onChange={(e) => handlePetChange(index, "breed", e.target.value)}
-                      placeholder="e.g. Golden Retriever"
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Sex *</label>
-                    <select
-                      required={hasPet}
-                      value={pet.sex}
-                      onChange={(e) => handlePetChange(index, "sex", e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500 cursor-pointer"
-                    >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
-
-                  <div className="pt-5">
-                    <label className="flex items-center gap-2 text-xs font-bold text-navy-900 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={pet.isNeutered}
-                        onChange={(e) => handlePetChange(index, "isNeutered", e.target.checked)}
-                        className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
-                      />
-                      <span>Neutered / Spayed</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Date of Birth *</label>
-                    <input
-                      type="date"
-                      required={hasPet}
-                      value={pet.dateOfBirth || ""}
-                      onChange={(e) => handlePetChange(index, "dateOfBirth", e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Microchip No. (Optional)</label>
-                    <input
-                      type="text"
-                      value={pet.microchipNo || ""}
-                      onChange={(e) => handlePetChange(index, "microchipNo", e.target.value)}
-                      placeholder="e.g. 985141002345678"
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Color / Markings & Identification *</label>
-                  <input
-                    type="text"
-                    required={hasPet}
-                    value={pet.colorMarkings || ""}
-                    onChange={(e) => handlePetChange(index, "colorMarkings", e.target.value)}
-                    placeholder="e.g. Tan coat with white spot on chest"
-                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={handleAddPet}
-              className="w-full py-3 px-4 rounded-2xl bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs border border-orange-200/80 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <span>+ Add Another Pet to Registration</span>
-            </button>
           </div>
-        ) : (
-          <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-1">
-            <p className="text-xs font-bold text-slate-700">No pets registered at this time.</p>
-            <p className="text-[11px] text-slate-400">You can add your pets anytime later under your user profile dashboard.</p>
-          </div>
-        )}
 
-        <div className="flex items-center gap-3 pt-2">
+          {/* Optional Handler Block */}
+          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 block">
+              Authorized Pet Handler (Optional)
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input
+                name="handlerName"
+                type="text"
+                placeholder="Handler Name"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-navy-900"
+              />
+              <input
+                name="handlerRelationship"
+                type="text"
+                placeholder="Relationship"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-navy-900"
+              />
+              <input
+                name="handlerPhone"
+                type="tel"
+                placeholder="Contact Number"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-navy-900"
+              />
+            </div>
+          </div>
+
           <button
             type="button"
-            onClick={() => setCurrentPage(1)}
-            className="w-1/3 py-3.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer text-center"
+            onClick={() => setStep(2)}
+            className="w-full py-3.5 px-6 rounded-2xl bg-navy-900 hover:bg-navy-800 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
           >
-            ◀ Back
-          </button>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-2/3 py-3.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md shadow-orange-500/20 transition-all cursor-pointer disabled:opacity-50 text-center"
-          >
-            {isPending ? "Creating Account..." : `Complete Registration (${hasPet ? petsList.length : 0} Pet${petsList.length > 1 ? "s" : ""}) ✓`}
+            <span>Proceed to Step 2: Pet Profile</span>
+            <span>➔</span>
           </button>
         </div>
-      </div>
 
-      <p className="text-center text-xs text-slate-500 pt-2">
-        Already have an account?{" "}
-        <Link href={ROUTES.LOGIN} className="font-bold text-orange-600 hover:underline">
-          Sign In
+        {/* ================= STEP 2: PET PROFILE ================= */}
+        <div className={step === 2 ? "space-y-4" : "hidden"}>
+          <div className="flex items-center gap-2 text-xs font-extrabold text-navy-900 border-b border-slate-100 pb-2">
+            <span>🐾</span>
+            <span>First Fur Baby Details</span>
+          </div>
+
+          {/* Species Selector Badges */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              Pet Species *
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: "Canine", icon: "🐶" },
+                { label: "Feline", icon: "🐱" },
+                { label: "Avian", icon: "🦜" },
+                { label: "Rabbit", icon: "🐰" },
+                { label: "Other", icon: "🐾" },
+              ].map((s) => {
+                const isSelected = petData.species === s.label;
+                return (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => handleSpeciesSelect(s.label)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                      isSelected
+                        ? "bg-orange-500 text-white border-orange-500 shadow-xs"
+                        : "bg-slate-50 text-navy-900 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span>{s.icon}</span>
+                    <span>{s.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label htmlFor="petName" className="block text-xs font-bold text-slate-700">
+                Pet Name *
+              </label>
+              <input
+                id="petName"
+                type="text"
+                required={step === 2}
+                value={petData.name}
+                onChange={(e) => setPetData({ ...petData, name: e.target.value })}
+                placeholder="e.g. Buddy, Maru, Coco"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-navy-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="petBreed" className="block text-xs font-bold text-slate-700">
+                Breed (Optional)
+              </label>
+              <input
+                id="petBreed"
+                type="text"
+                value={petData.breed}
+                onChange={(e) => setPetData({ ...petData, breed: e.target.value })}
+                placeholder="e.g. Golden Retriever, Persian"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-navy-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label htmlFor="petGender" className="block text-xs font-bold text-slate-700">
+                Gender *
+              </label>
+              <select
+                id="petGender"
+                required={step === 2}
+                value={petData.sex}
+                onChange={(e) => setPetData({ ...petData, sex: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+
+            {/* Fully Custom Modern DOB Calendar Selection */}
+            <div className="space-y-1 relative" ref={calendarRef}>
+              <label className="block text-xs font-bold text-slate-700">
+                Date of Birth *
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCalendarOpen(!isCalendarOpen);
+                  setCalendarViewMode("days");
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-navy-900 flex items-center justify-between hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
+              >
+                <span className={petData.dateOfBirth ? "text-navy-900 font-bold" : "text-slate-400"}>
+                  {petData.dateOfBirth || "Select Date of Birth"}
+                </span>
+                <svg className="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 7V3m8 0v4m-9 4h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </button>
+
+              {/* Custom Popover Container */}
+              {isCalendarOpen && (
+                <div className="absolute right-0 sm:left-0 top-full mt-2 z-50 w-72 bg-white rounded-2xl border border-slate-200 shadow-xl p-4 space-y-3 animate-in fade-in zoom-in-95 duration-150">
+                  {/* Header Navigation Controls */}
+                  <div className="flex items-center justify-between gap-1 pb-2 border-b border-slate-100">
+                    <button
+                      type="button"
+                      onClick={handlePrevMonth}
+                      className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer text-xs"
+                      aria-label="Previous month"
+                    >
+                      ◀
+                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-extrabold text-navy-900">
+                        {monthNames[viewMonth]}
+                      </span>
+
+                      {/* Custom Interactive Year Badge Trigger (No native <select> tag!) */}
+                      <button
+                        type="button"
+                        onClick={() => setCalendarViewMode(calendarViewMode === "years" ? "days" : "years")}
+                        className="px-2 py-0.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1"
+                        title="Click to change year"
+                      >
+                        <span>{viewYear}</span>
+                        <svg className={`w-3 h-3 transition-transform ${calendarViewMode === "years" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleNextMonth}
+                      className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer text-xs"
+                      aria-label="Next month"
+                    >
+                      ▶
+                    </button>
+                  </div>
+
+                  {/* VIEW MODE A: Custom Scrollable Year Grid Picker */}
+                  {calendarViewMode === "years" ? (
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
+                        Select Birth Year
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                        {yearOptions.map((y) => {
+                          const isSelectedYear = y === viewYear;
+                          return (
+                            <button
+                              key={y}
+                              type="button"
+                              onClick={() => handleYearSelect(y)}
+                              className={`py-2 px-1 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                                isSelectedYear
+                                  ? "bg-orange-500 text-white shadow-xs font-black"
+                                  : "bg-slate-50 hover:bg-orange-50 text-slate-700 hover:text-orange-600"
+                              }`}
+                            >
+                              {y}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    /* VIEW MODE B: Standard Calendar Days Grid */
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400">
+                        <span>Su</span>
+                        <span>Mo</span>
+                        <span>Tu</span>
+                        <span>We</span>
+                        <span>Th</span>
+                        <span>Fr</span>
+                        <span>Sa</span>
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1 text-center">
+                        {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
+                          <div key={`empty-${idx}`} />
+                        ))}
+
+                        {Array.from({ length: daysInMonth }).map((_, idx) => {
+                          const dayNum = idx + 1;
+                          const formattedMonth = String(viewMonth + 1).padStart(2, "0");
+                          const formattedDay = String(dayNum).padStart(2, "0");
+                          const dateStr = `${viewYear}-${formattedMonth}-${formattedDay}`;
+
+                          const isSelected = petData.dateOfBirth === dateStr;
+
+                          return (
+                            <button
+                              key={dayNum}
+                              type="button"
+                              onClick={() => handleSelectDay(dayNum)}
+                              className={`py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-orange-500 text-white shadow-xs font-black"
+                                  : "hover:bg-orange-50 text-slate-700 hover:text-orange-600"
+                              }`}
+                            >
+                              {dayNum}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="petColor" className="block text-xs font-bold text-slate-700">
+                Color / Markings *
+              </label>
+              <input
+                id="petColor"
+                type="text"
+                required={step === 2}
+                value={petData.colorMarkings}
+                onChange={(e) => setPetData({ ...petData, colorMarkings: e.target.value })}
+                placeholder="e.g. White w/ Black Spots"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-navy-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="microchipNo" className="block text-xs font-bold text-slate-700">
+              Microchip No. / Medical Notes (Optional)
+            </label>
+            <input
+              id="microchipNo"
+              type="text"
+              value={petData.microchipNo}
+              onChange={(e) => setPetData({ ...petData, microchipNo: e.target.value })}
+              placeholder="e.g. 981020000123456 or special notes..."
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-navy-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="w-1/3 py-3.5 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-navy-900 font-bold text-xs border border-slate-200 transition-colors cursor-pointer"
+            >
+              ← Back
+            </button>
+
+            <button
+              type="submit"
+              disabled={isPending}
+              className="w-2/3 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs shadow-md shadow-orange-500/25 hover:shadow-lg hover:scale-[1.01] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isPending ? (
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Creating Account...</span>
+                </div>
+              ) : (
+                <>
+                  <span>Complete Registration</span>
+                  <span>🐾</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* Footer Link */}
+      <div className="pt-2 text-center text-xs font-semibold text-slate-500 border-t border-slate-100">
+        <span>Already have an account? </span>
+        <Link
+          href={ROUTES.LOGIN}
+          className="font-extrabold text-orange-600 hover:text-orange-700 underline underline-offset-4 transition-colors"
+        >
+          Sign In Here
         </Link>
-      </p>
-    </form>
+      </div>
+    </div>
   );
 }
-
-export default RegisterForm;

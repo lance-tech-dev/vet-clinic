@@ -1,39 +1,38 @@
 import { createClient } from "@/lib/supabase/server";
-import { ContactView, type BranchContactInfo } from "./contact-view";
-
-export const revalidate = 0;
+import { ContactView } from "./contact-view";
 
 export default async function ContactPage() {
   const supabase = await createClient();
-
-  // Fetch active clinic branches from Supabase
-  const { data: rawBranches } = await supabase
+  const { data: branches } = await supabase
     .from("branches")
     .select("id, name, address, city, phone, operating_hours")
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
-
-  const branches = (rawBranches as BranchContactInfo[]) || [];
+    .order("name", { ascending: true });
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 sm:py-16 text-navy-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        {/* Header Section */}
-        <div className="text-center max-w-2xl mx-auto space-y-3">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-            Get In Touch
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-black text-navy-900 tracking-tight">
-            We&apos;d Love to Hear From You
+    <main className="min-h-screen bg-slate-50 text-slate-800">
+      {/* 1. Hero Section (Matched directly to branches/page.tsx) */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-orange-50/70 via-white to-slate-50 py-16 lg:py-24 border-b border-slate-200/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-3xl space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100/80 text-orange-800 text-xs font-bold border border-orange-200 shadow-2xs">
+            <span>📞</span> Get In Touch
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-navy-900 tracking-tight leading-[1.15]">
+            We&apos;d Love to <span className="text-orange-500">Hear From You</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+
+          <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-normal">
             Have questions about our veterinary services, branch schedules, or pet health records? Send us a message or reach out through our official channels.
           </p>
         </div>
+      </section>
 
-        {/* Dynamic Interactive Client View */}
-        <ContactView branches={branches} />
-      </div>
+      {/* 2. Main Content Grid Section */}
+      <section className="py-12 sm:py-16 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ContactView branches={branches || []} />
+        </div>
+      </section>
     </main>
   );
 }
