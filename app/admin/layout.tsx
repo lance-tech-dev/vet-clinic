@@ -1,44 +1,47 @@
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth/session";
-import { AuthenticationError, ForbiddenError } from "@/lib/errors/app-error";
-import { ROUTES } from "@/config/constants";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
-import type { NavAuthState } from "@/lib/auth/types";
+import { ROUTES } from "@/config/constants";
 
-/**
- * Server-side authorization boundary for every /admin route.
- *
- * Proxy (proxy.ts) only performs an optimistic "is there a session" redirect.
- * This layout performs the authoritative check: it re-verifies the user via
- * Supabase Auth and confirms their profile role is "admin" before rendering
- * any admin content.
- */
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  let adminData;
-  try {
-    adminData = await requireAdmin();
-  } catch (error) {
-    if (error instanceof AuthenticationError) {
-      redirect(ROUTES.LOGIN);
-    }
-    if (error instanceof ForbiddenError) {
-      redirect(ROUTES.UNAUTHORIZED);
-    }
-    throw error;
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(ROUTES.LOGIN);
   }
 
-  const navAuthState: NavAuthState = {
-    isAuthenticated: true,
-    displayName: adminData.profile.full_name ?? adminData.user.email ?? "Admin",
-    isAdmin: true,
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, full_name, avatar_url")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile || profile.role !== "admin") {
+    redirect(ROUTES.UNAUTHORIZED);
+  }
+
+  const sessionUser = {
+    id: user.id,
+    email: user.email || "",
+    fullName: profile.full_name || null,
+    role: profile.role,
+    avatarUrl: profile.avatar_url || null,
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <AdminNavbar authState={navAuthState} />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-slate-50 text-navy-900 flex flex-col pt-18">
+      <AdminNavbar user={sessionUser} />
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
         {children}
-      </main>
+      </div>
     </div>
   );
 }
