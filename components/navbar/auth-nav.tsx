@@ -34,9 +34,8 @@ export function AuthNav({ user }: AuthNavProps) {
       {/* Primary Book Appointment CTA */}
       <Link
         href={ROUTES.APPOINTMENTS}
-        className="px-5 py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs shadow-xs shadow-orange-500/20 transition-all duration-200 hover:shadow-md hover:scale-[1.02] flex items-center gap-1.5"
+        className="px-5 py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs shadow-xs shadow-orange-500/20 transition-all duration-200 hover:shadow-md hover:scale-[1.02] flex items-center justify-center"
       >
-        <span>📅</span>
         <span>Book Now</span>
       </Link>
 

@@ -1,366 +1,416 @@
 import Link from "next/link";
-import Image from "next/image";
-import { ROUTES } from "@/config/constants";
 import { createClient } from "@/lib/supabase/server";
+import { ROUTES } from "@/config/constants";
 
-// Force Next.js to re-query Supabase on every request so admin branch updates sync instantly
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-interface Branch {
-  id: string;
-  name: string;
-  city: string;
-  address: string;
-  phone: string;
-  operating_hours: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-export default async function Home() {
+export default async function HomePage() {
   const supabase = await createClient();
 
-  // Fetch active clinic branches from Supabase
+  // Fetch active clinic branches configured by admin
   const { data: rawBranches } = await supabase
     .from("branches")
     .select("*")
     .eq("is_active", true)
     .order("created_at", { ascending: true });
 
-  const branches = (rawBranches as Branch[]) || [];
+  const branches = rawBranches || [];
+  const branchCount = branches.length;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      {/* 1. Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-orange-50/70 via-white to-slate-50 pt-12 pb-20 lg:pt-20 lg:pb-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Content */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100/80 text-orange-800 text-xs font-bold border border-orange-200 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                Trusted Veterinary Healthcare in Laguna
-              </div>
+    <main className="min-h-screen bg-slate-50 text-navy-900 selection:bg-orange-500 selection:text-white">
+      {/* 1. HERO SECTION */}
+      <section className="relative overflow-hidden pt-12 pb-16 lg:pt-20 lg:pb-28 bg-gradient-to-b from-orange-50/60 via-slate-50 to-slate-50 border-b border-slate-200/60">
+        {/* Decorative Background Glows */}
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-r from-orange-200/30 to-amber-200/30 blur-3xl pointer-events-none rounded-full"
+          aria-hidden="true"
+        />
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-navy-900 tracking-tight leading-[1.12]">
-                Exceptional Medical Care for Your Beloved <span className="text-orange-500">Fur Babies</span>
-              </h1>
-
-              <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
-                From routine wellness checkups and life-saving surgeries to gentle grooming and emergency care. We provide compassionate, world-class veterinary service for dogs, cats, and exotic pets.
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-                <Link
-                  href={ROUTES.APPOINTMENTS}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-base shadow-lg shadow-orange-500/25 transition-all transform active:scale-98"
-                >
-                  Book an Appointment
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </Link>
-
-                <Link
-                  href={ROUTES.SERVICES}
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-white hover:bg-slate-100 text-navy-900 font-semibold text-base border border-slate-200 shadow-xs transition-colors"
-                >
-                  Explore Services
-                </Link>
-              </div>
-
-              {/* Trust Indicators */}
-              <div className="pt-8 border-t border-slate-200/80 grid grid-cols-3 gap-4 text-center lg:text-left">
-                <div>
-                  <div className="text-2xl sm:text-3xl font-extrabold text-navy-900">10k+</div>
-                  <div className="text-xs text-slate-500 font-medium mt-0.5">Pets Cared For</div>
-                </div>
-                <div>
-                  <div className="text-2xl sm:text-3xl font-extrabold text-navy-900">{branches.length || 3}</div>
-                  <div className="text-xs text-slate-500 font-medium mt-0.5">Clinic Branches</div>
-                </div>
-                <div>
-                  <div className="text-2xl sm:text-3xl font-extrabold text-navy-900">4.9 ★</div>
-                  <div className="text-xs text-slate-500 font-medium mt-0.5">Pet Parent Rating</div>
-                </div>
-              </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="text-center max-w-3xl mx-auto space-y-6">
+            {/* Pill Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100/80 border border-orange-200 text-orange-800 text-xs font-extrabold shadow-2xs">
+              <span className="flex h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+              <span>Compassionate & Professional Veterinary Care</span>
             </div>
 
-            {/* Right Card Feature */}
-            <div className="lg:col-span-5">
-              <div className="relative mx-auto max-w-md lg:max-w-none bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xl space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                  <LogoPreview />
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                    Open Today
-                  </span>
-                </div>
+            {/* Main Headline */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-navy-900 tracking-tight leading-[1.1]">
+              Expert Healthcare for Your{" "}
+              <span className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 bg-clip-text text-transparent">
+                Beloved Fur Babies
+              </span>
+            </h1>
 
-                <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-orange-50/80 border border-orange-100 flex items-start gap-3">
-                    <span className="text-2xl">🏥</span>
-                    <div>
-                      <h3 className="text-sm font-bold text-navy-900">Complete Vet Facilities</h3>
-                      <p className="text-xs text-slate-600 mt-0.5">Equipped with diagnostic lab, digital X-rays, and surgical suites.</p>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-100 flex items-start gap-3">
-                    <span className="text-2xl">✂️</span>
-                    <div>
-                      <h3 className="text-sm font-bold text-navy-900">Pet Spa & Grooming</h3>
-                      <p className="text-xs text-slate-600 mt-0.5">Medicated baths, hair styling, nail trimming, and ear cleaning.</p>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-purple-50/80 border border-purple-100 flex items-start gap-3">
-                    <span className="text-2xl">💊</span>
-                    <div>
-                      <h3 className="text-sm font-bold text-navy-900">In-House Pharmacy</h3>
-                      <p className="text-xs text-slate-600 mt-0.5">Prescription medications, vitamins, supplements, and prescription food.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 text-center">
-                  <a
-                    href="https://www.facebook.com/furbabiesph"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline"
-                  >
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                    Follow Us on Facebook @furbabiesph
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. Services Grid */}
-      <section id="services" className="py-20 bg-white border-y border-slate-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-              Our Services
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-navy-900 tracking-tight">
-              Comprehensive Care for Every Stage of Life
-            </h2>
-            <p className="text-slate-600 text-sm sm:text-base">
-              Dedicated veterinary medical treatments designed to keep your companions healthy, happy, and vibrant.
+            {/* Subtitle */}
+            <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-2xl mx-auto">
+              From routine wellness checkups and emergency surgeries to gentle grooming and digital medical records—we provide total care for your pets across multiple branches.
             </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+              <Link
+                href={ROUTES.APPOINTMENTS}
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <span>📅 Book Appointment</span>
+                <span>➔</span>
+              </Link>
+
+              <Link
+                href={ROUTES.SERVICES}
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white hover:bg-slate-100 text-navy-900 font-extrabold text-sm border border-slate-200 shadow-2xs hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <span>🏥 Explore Services</span>
+              </Link>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {SERVICES.map((service) => (
+          {/* Hero Stats Glass Banner */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-8 max-w-5xl mx-auto">
+            {[
+              { stat: "10,000+", label: "Pets Cared For", icon: "🐾" },
+              { stat: "4.9", label: "Parent Rating", icon: "⭐" },
+              {
+                stat: branchCount > 0 ? `${branchCount} Location${branchCount === 1 ? "" : "s"}` : "Multiple",
+                label: "Clinic Branches",
+                icon: "🏥",
+              },
+              { stat: "Licensed", label: "DVM Specialists", icon: "🩺" },
+            ].map((item, idx) => (
               <div
-                key={service.title}
-                className="bg-slate-50/80 p-8 rounded-3xl border border-slate-200/80 hover:bg-white hover:shadow-xl transition-all duration-300 group"
+                key={idx}
+                className="bg-white/80 backdrop-blur-md p-5 rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all text-center space-y-1"
               >
-                <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-2xl mb-6 group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                  {service.icon}
+                <div className="text-2xl mb-1">{item.icon}</div>
+                <div className="text-xl sm:text-2xl font-black text-navy-900">
+                  {item.stat}
                 </div>
-                <h3 className="text-xl font-bold text-navy-900 mb-2">{service.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed font-normal">{service.description}</p>
+                <div className="text-xs font-semibold text-slate-500">
+                  {item.label}
+                </div>
               </div>
             ))}
           </div>
-
-          <div className="mt-12 text-center">
-            <Link
-              href={ROUTES.SERVICES}
-              className="inline-flex items-center gap-2 font-bold text-sm text-orange-600 hover:text-orange-700 hover:underline"
-            >
-              View Full Services Directory →
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* 3. Dynamic Clinic Branches (Fetches from Supabase) */}
-      <section id="branches" className="py-20 bg-slate-50">
+      {/* 2. VALUE PILLARS / WHY CHOOSE US */}
+      <section className="py-16 sm:py-24 bg-white border-b border-slate-200/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="text-center max-w-3xl mx-auto space-y-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-              Clinic Locations
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+              Why FurBabies & Friends?
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-navy-900 tracking-tight">
-              Conveniently Located Across Laguna
+            <h2 className="text-3xl sm:text-4xl font-black text-navy-900 tracking-tight">
+              Standard of Excellence in Veterinary Medicine
             </h2>
-            <p className="text-slate-600 text-sm sm:text-base">
-              Visit any of our active, fully equipped clinic locations for top-quality veterinary care.
+            <p className="text-sm text-slate-600">
+              We combine modern clinical diagnostics with genuine warmth so every visit is comfortable and stress-free.
             </p>
           </div>
 
-          {branches.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-3xl border border-slate-200/80 text-slate-500 text-sm max-w-xl mx-auto space-y-2">
-              <p className="font-bold text-navy-900">No active branches currently listed.</p>
-              <p>Please contact our team directly for operating hours and appointment slots.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                title: "Emergency Readiness",
+                desc: "Immediate clinical intervention and triage for critical health cases when your pet needs urgent care.",
+                icon: "🚨",
+                color: "bg-red-50 text-red-600 border-red-100",
+              },
+              {
+                title: "Certified DVM Vets",
+                desc: "Experienced Doctor of Veterinary Medicine practitioners dedicated to personalized patient treatment.",
+                icon: "🩺",
+                color: "bg-orange-50 text-orange-600 border-orange-100",
+              },
+              {
+                title: "Digital Health Records",
+                desc: "Access your pet's complete vaccination logs, dental charts, and visit records online anytime.",
+                icon: "📋",
+                color: "bg-emerald-50 text-emerald-600 border-emerald-100",
+              },
+              {
+                title: "Multi-Branch Network",
+                desc: "Conveniently located clinic branches with synchronized patient records across all sites.",
+                icon: "🏢",
+                color: "bg-blue-50 text-blue-600 border-blue-100",
+              },
+            ].map((pillar, idx) => (
+              <div
+                key={idx}
+                className="bg-slate-50/80 p-6 rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-200 space-y-3 group"
+              >
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border ${pillar.color} group-hover:scale-110 transition-transform`}
+                >
+                  {pillar.icon}
+                </div>
+                <h3 className="text-base font-bold text-navy-900">
+                  {pillar.title}
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {pillar.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 3. FEATURED SERVICES HIGHLIGHT */}
+      <section className="py-16 sm:py-24 bg-slate-50 border-b border-slate-200/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+                Core Clinical Offerings
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-navy-900 tracking-tight">
+                Comprehensive Care for Dogs, Cats & Small Animals
+              </h2>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {branches.map((branch) => (
+            <Link
+              href={ROUTES.SERVICES}
+              className="inline-flex items-center gap-2 text-xs font-extrabold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-5 py-2.5 rounded-full border border-orange-200/80 transition-colors w-fit shrink-0"
+            >
+              <span>View All Services Catalog</span>
+              <span>➔</span>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                name: "General Consultation & Checkup",
+                desc: "Thorough physical examination, vital checks, and preventative wellness plans for pets of all ages.",
+                tag: "Essential Care",
+                icon: "🩺",
+              },
+              {
+                name: "Vaccination & Preventatives",
+                desc: "Core canine and feline vaccines, deworming, and tick/flea parasite protection protocols.",
+                tag: "Prevention",
+                icon: "💉",
+              },
+              {
+                name: "Full Dental Exam & Cleaning",
+                desc: "Ultrasonic scaling, dental charting, periodontal care, and oral hygiene treatments.",
+                tag: "Oral Health",
+                icon: "🪥",
+              },
+              {
+                name: "Grooming & Hygiene Spa",
+                desc: "Medicated baths, hair trimming, nail clipping, ear cleaning, and sanitary maintenance.",
+                tag: "Wellness & Grooming",
+                icon: "✂️",
+              },
+              {
+                name: "Soft Tissue Surgery & Neutering",
+                desc: "Sterile surgical suite for spaying, neutering, mass removal, and minor surgical procedures.",
+                tag: "Surgery",
+                icon: "🏥",
+              },
+              {
+                name: "Pet Boarding & Monitoring",
+                desc: "Safe, climate-controlled, supervised accommodations for pets during travel or recuperation.",
+                tag: "Boarding",
+                icon: "🏠",
+              },
+            ].map((service, idx) => (
+              <div
+                key={idx}
+                className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-lg transition-all duration-200 space-y-4 flex flex-col justify-between group"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl p-2 bg-orange-50 rounded-2xl border border-orange-100 group-hover:scale-105 transition-transform">
+                      {service.icon}
+                    </span>
+                    <span className="text-[11px] font-extrabold text-orange-700 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
+                      {service.tag}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-navy-900 group-hover:text-orange-600 transition-colors">
+                    {service.name}
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    {service.desc}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <Link
+                    href={ROUTES.APPOINTMENTS}
+                    className="text-xs font-extrabold text-navy-900 hover:text-orange-600 flex items-center gap-1 transition-colors"
+                  >
+                    <span>Book This Service</span>
+                    <span>➔</span>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. DYNAMIC BRANCH LOCATOR QUICK-VIEW */}
+      <section className="py-16 sm:py-24 bg-white border-b border-slate-200/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+              Convenient Locations
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-navy-900 tracking-tight">
+              Visit Our Nearby Clinic Branches
+            </h2>
+            <p className="text-sm text-slate-600">
+              Equipped with modern facilities and friendly staff ready to welcome you and your pet.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {branches.length > 0 ? (
+              branches.map((branch) => (
                 <div
                   key={branch.id}
-                  className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-lg transition-all duration-200 flex flex-col justify-between space-y-4"
+                  className="bg-slate-50/80 p-6 rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80">
-                        Open Daily
+                      <span className="text-xs font-extrabold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Open Today</span>
                       </span>
-                      <span className="text-xs text-slate-400 font-medium">{branch.operating_hours}</span>
+                      <span className="text-xs font-bold text-slate-400">
+                        📍 {branch.city || "San Pablo City"}
+                      </span>
                     </div>
 
-                    <div>
-                      <h3 className="text-lg font-bold text-navy-900">{branch.name}</h3>
-                      <p className="text-xs text-slate-500 mt-1">{branch.address}</p>
+                    <h3 className="text-base font-extrabold text-navy-900">
+                      {branch.name}
+                    </h3>
+
+                    <div className="text-xs text-slate-600 space-y-1.5">
+                      <p className="flex items-start gap-2">
+                        <span>📌</span>
+                        <span>{branch.address}</span>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <span>⏰</span>
+                        <span>{branch.operating_hours || "Mon - Sat: 8:00 AM - 6:00 PM"}</span>
+                      </p>
+                      <p className="flex items-center gap-2 font-bold text-navy-900">
+                        <span>📞</span>
+                        <span>{branch.phone || "Contact Branch"}</span>
+                      </p>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-700">📞 {branch.phone}</span>
-                    <Link href={ROUTES.APPOINTMENTS} className="font-bold text-orange-600 hover:underline">
-                      Book Here →
-                    </Link>
-                  </div>
+                  <Link
+                    href={ROUTES.BRANCHES}
+                    className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-navy-900 font-bold text-xs border border-slate-200 text-center transition-colors block"
+                  >
+                    View Branch Details & Map ➔
+                  </Link>
                 </div>
-              ))}
-            </div>
-          )}
-
-          <div className="text-center">
-            <Link
-              href={ROUTES.BRANCHES}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs shadow-xs transition-colors"
-            >
-              See All Branch Details & Maps
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Contact / Inquiry Section */}
-      <section id="contact" className="py-20 bg-white border-t border-slate-200/80">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-br from-navy-900 to-slate-900 text-white rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden">
-            <div className="relative z-10 space-y-6">
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Have Questions or Need Assistance?</h2>
-                <p className="text-slate-300 text-sm">Send us a message and our veterinary team will get back to you promptly.</p>
+              ))
+            ) : (
+              <div className="col-span-full bg-slate-50 p-8 rounded-3xl border border-slate-200/80 text-center space-y-2">
+                <p className="text-sm font-bold text-navy-900">No active clinic branches listed at this time.</p>
+                <p className="text-xs text-slate-500">Please check back later or contact us directly.</p>
               </div>
-
-              <form className="space-y-4 max-w-xl mx-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Your Full Name"
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    required
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Mobile / Contact Number"
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    required
-                  />
-                </div>
-                <input
-                  type="email"
-                  placeholder="Email Address"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-                <textarea
-                  rows={3}
-                  placeholder="Tell us about your pet's needs or appointment preference..."
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="w-full py-3.5 px-6 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow-lg transition-colors cursor-pointer"
-                >
-                  Send Inquiry to Clinic
-                </button>
-              </form>
-            </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* 5. Footer */}
-      <footer className="bg-navy-950 text-slate-400 py-12 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 text-xs">
-          <div className="flex items-center gap-3">
-            <LogoPreview />
-            <span className="text-slate-500">|</span>
-            <span>© {new Date().getFullYear()} VetClinic Furbabies & Friends. All rights reserved.</span>
+      {/* 5. PARENT TESTIMONIALS */}
+      <section className="py-16 sm:py-24 bg-slate-50 border-b border-slate-200/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+              Parent Feedback
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-navy-900 tracking-tight">
+              Trusted by Hundreds of Local Pet Families
+            </h2>
+            <p className="text-sm text-slate-600">
+              Read real stories from pet owners who trust us with their dogs and cats.
+            </p>
           </div>
-          <div className="flex items-center gap-6 font-medium">
-            <a href="https://www.facebook.com/furbabiesph" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-              Facebook
-            </a>
-            <Link href={ROUTES.LOGIN} className="hover:text-white transition-colors">
-              Staff Portal
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                quote:
+                  "The doctors were so gentle with my Golden Retriever, Buddy. Their online portal made booking and checking vaccine history super easy!",
+                author: "Maria Santos",
+                pet: "Owner of Buddy (Golden Retriever)",
+                rating: "⭐⭐⭐⭐⭐",
+              },
+              {
+                quote:
+                  "Extremely clean facilities and compassionate staff. They handled my cat's dental procedure smoothly with thorough post-care updates.",
+                author: "Juan Dela Cruz",
+                pet: "Owner of Maru (Persian Cat)",
+                rating: "⭐⭐⭐⭐⭐",
+              },
+              {
+                quote:
+                  "Best vet clinic in San Pablo! The emergency team acted quickly when my puppy needed urgent care. I cannot thank them enough.",
+                author: "Elena Reyes",
+                pet: "Owner of Coco (Poodle)",
+                rating: "⭐⭐⭐⭐⭐",
+              },
+            ].map((review, idx) => (
+              <div
+                key={idx}
+                className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-2xs space-y-4 flex flex-col justify-between"
+              >
+                <div className="space-y-3">
+                  <div className="text-xs">{review.rating}</div>
+                  <p className="text-xs text-slate-600 italic leading-relaxed">
+                    &ldquo;{review.quote}&rdquo;
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="text-xs font-extrabold text-navy-900">
+                    {review.author}
+                  </div>
+                  <div className="text-[11px] font-medium text-orange-600">
+                    {review.pet}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 6. BOTTOM BOOKING CTA BANNER */}
+      <section className="py-16 sm:py-20 bg-gradient-to-r from-navy-950 via-slate-900 to-navy-900 text-white relative overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 relative z-10">
+          <span className="text-3xl">🐾</span>
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight max-w-2xl mx-auto">
+            Ready to Give Your Pet the Healthcare They Deserve?
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
+            Schedule a visit at any of our branches in just a few clicks. Fast online booking with instant confirmation.
+          </p>
+          <div className="pt-2">
+            <Link
+              href={ROUTES.APPOINTMENTS}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm shadow-xl shadow-orange-500/20 hover:scale-105 transition-all"
+            >
+              <span>Schedule Appointment Now</span>
+              <span>➔</span>
             </Link>
           </div>
         </div>
-      </footer>
-    </div>
+      </section>
+    </main>
   );
 }
-
-function LogoPreview() {
-  return (
-    <div className="inline-flex items-center">
-      <Image
-        src="/vetclinic-logo.png"
-        alt="VetClinic Furbabies & Friends"
-        width={160}
-        height={50}
-        className="h-9 w-auto object-contain"
-      />
-    </div>
-  );
-}
-
-const SERVICES = [
-  {
-    title: "General Consultation",
-    icon: "🩺",
-    description: "Thorough physical exams, wellness assessments, disease diagnosis, and personalized treatment plans for your pet.",
-  },
-  {
-    title: "Vaccinations & Deworming",
-    icon: "💉",
-    description: "Essential core vaccines (5-in-1, Rabies, Kennel Cough) and preventive deworming schedules to protect your fur babies.",
-  },
-  {
-    title: "Surgery & Soft Tissue",
-    icon: "🔬",
-    description: "Safe surgical procedures including spay/neuter, wound repair, tumor removal, and emergency soft tissue surgeries.",
-  },
-  {
-    title: "Veterinary Dental Care",
-    icon: "🪥",
-    description: "Professional ultrasonic scaling, polishing, tooth extraction, and oral health care to prevent gum disease.",
-  },
-  {
-    title: "Pet Spa & Grooming",
-    icon: "✂️",
-    description: "Custom haircuts, medicated baths, flea & tick dips, nail trim, and ear cleaning performed by gentle pet stylists.",
-  },
-  {
-    title: "Diagnostics & Laboratory",
-    icon: "🧪",
-    description: "In-house blood chemistry, CBC analysis, digital X-rays, ultrasound, and rapid test kits for quick, accurate diagnosis.",
-  },
-];

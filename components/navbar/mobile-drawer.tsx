@@ -34,7 +34,7 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
     () => false
   );
 
-  // Derive/reset state during render when pathname changes (React standard pattern)
+  // Derive/reset state during render when pathname changes
   if (prevPathname !== pathname) {
     setPrevPathname(pathname);
     if (isOpen) {
@@ -51,11 +51,10 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
     setIsVisible(false);
     const timer = setTimeout(() => {
       setIsOpen(false);
-    }, 300); // Matches 300ms CSS transition duration
+    }, 300);
     return () => clearTimeout(timer);
   }, []);
 
-  // Trigger entering animation on next animation frame
   useEffect(() => {
     if (!isOpen) return;
 
@@ -68,7 +67,6 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
     };
   }, [isOpen]);
 
-  // Lock body scroll safely when drawer is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -90,7 +88,6 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
 
   return (
     <div className="lg:hidden">
-      {/* Hamburger Toggle Button */}
       <button
         type="button"
         onClick={handleOpen}
@@ -112,7 +109,6 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
         </svg>
       </button>
 
-      {/* Drawer Portal */}
       {isOpen && isMounted && createPortal(
         <div
           role="dialog"
@@ -120,7 +116,6 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
           aria-label="Mobile Navigation"
           className="fixed inset-0 z-[9999] flex justify-end"
         >
-          {/* Backdrop Overlay with Strict Touch Prevention */}
           <div
             className={`fixed inset-0 bg-navy-950/60 backdrop-blur-xs transition-opacity duration-300 ease-out touch-none ${
               isVisible ? "opacity-100" : "opacity-0"
@@ -130,14 +125,12 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
             aria-hidden="true"
           />
 
-          {/* Slide-out Sheet */}
           <div
             className={`relative z-10 w-full max-w-xs bg-white h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
               isVisible ? "translate-x-0" : "translate-x-full"
             }`}
           >
             <div className="space-y-6">
-              {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">🐾</span>
@@ -153,7 +146,6 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
                 </button>
               </div>
 
-              {/* User Quick Info Card (If Logged In) */}
               {user && (
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                   <div className="flex items-center gap-3">
@@ -196,7 +188,6 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
                 </div>
               )}
 
-              {/* Navigation Links */}
               <nav className="space-y-1.5">
                 {NAV_LINKS.map((link) => {
                   const isActive =
@@ -221,13 +212,11 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
               </nav>
             </div>
 
-            {/* Bottom Actions Stack */}
             <div className="space-y-3 pt-6 border-t border-slate-100">
               <Link
                 href={ROUTES.APPOINTMENTS}
-                className="w-full py-3 px-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs text-center shadow-md shadow-orange-500/20 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs text-center shadow-md shadow-orange-500/20 transition-all flex items-center justify-center"
               >
-                <span>📅</span>
                 <span>Book Appointment</span>
               </Link>
 
